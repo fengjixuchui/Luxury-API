@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <vector>
 
 #include <Windows.h>
 #include <TlHelp32.h>
@@ -15,12 +16,26 @@
 #include <Subauth.h>
 #include <Shlwapi.h>
 
+#include <accctrl.h>
+#include <aclapi.h>
+#include <shlobj_core.h>
+
+#include <thread>
+#include <mutex>
 #include <iphlpapi.h>
+
+#include <CommCtrl.h>
+#include <WinUser.h>
+#include <Winioctl.h>
+
+#include <sysinfoapi.h>
+#include <tchar.h>
 
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "Shlwapi.lib")
-
+#pragma comment(lib, "comctl32.lib")
+#pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 #define RANDOM_CAPS        0
 #define RANDOM_LOWERCASE   1
@@ -31,31 +46,439 @@
 					std::cout << std::endl;		\
 				}
 
+enum _SYSTEM_INFORMATION_CLASS {
+
+	SystemBasicInformation = 0x0000,
+	SystemProcessorInformation = 0x0001,
+	SystemPerformanceInformation = 0x0002,
+	SystemTimeOfDayInformation = 0x0003,
+	SystemPathInformation = 0x0004,
+	SystemProcessInformation = 0x0005,
+	SystemCallCountInformation = 0x0006,
+	SystemDeviceInformation = 0x0007,
+	SystemProcessorPerformanceInformation = 0x0008,
+	SystemFlagsInformation = 0x0009,
+	SystemCallTimeInformation = 0x000A,
+	SystemModuleInformation = 0x000B,
+	SystemLocksInformation = 0x000C,
+	SystemStackTraceInformation = 0x000D,
+	SystemPagedPoolInformation = 0x000E,
+	SystemNonPagedPoolInformation = 0x000F,
+	SystemHandleInformation = 0x0010,
+	SystemObjectInformation = 0x0011,
+	SystemPageFileInformation = 0x0012,
+	SystemVdmInstemulInformation = 0x0013,
+	SystemVdmBopInformation = 0x0014,
+	SystemFileCacheInformation = 0x0015,
+	SystemPoolTagInformation = 0x0016,
+	SystemInterruptInformation = 0x0017,
+	SystemDpcBehaviorInformation = 0x0018,
+	SystemFullMemoryInformation = 0x0019,
+	SystemLoadGdiDriverInformation = 0x001A,
+	SystemUnloadGdiDriverInformation = 0x001B,
+	SystemTimeAdjustmentInformation = 0x001C,
+	SystemSummaryMemoryInformation = 0x001D,
+	SystemMirrorMemoryInformation = 0x001E,
+	SystemPerformanceTraceInformation = 0x001F,
+	SystemCrashDumpInformation = 0x0020,
+	SystemExceptionInformation = 0x0021,
+	SystemCrashDumpStateInformation = 0x0022,
+	SystemKernelDebuggerInformation = 0x0023,
+	SystemContextSwitchInformation = 0x0024,
+	SystemRegistryQuotaInformation = 0x0025,
+	SystemExtendServiceTableInformation = 0x0026,
+	SystemPrioritySeperation = 0x0027,
+	SystemVerifierAddDriverInformation = 0x0028,
+	SystemVerifierRemoveDriverInformation = 0x0029,
+	SystemProcessorIdleInformation = 0x002A,
+	SystemLegacyDriverInformation = 0x002B,
+	SystemCurrentTimeZoneInformation = 0x002C,
+	SystemLookasideInformation = 0x002D,
+	SystemTimeSlipNotification = 0x002E,
+	SystemSessionCreate = 0x002F,
+	SystemSessionDetach = 0x0030,
+	SystemSessionInformation = 0x0031,
+	SystemRangeStartInformation = 0x0032,
+	SystemVerifierInformation = 0x0033,
+	SystemVerifierThunkExtend = 0x0034,
+	SystemSessionProcessInformation = 0x0035,
+	SystemLoadGdiDriverInSystemSpace = 0x0036,
+	SystemNumaProcessorMap = 0x0037,
+	SystemPrefetcherInformation = 0x0038,
+	SystemExtendedProcessInformation = 0x0039,
+	SystemRecommendedSharedDataAlignment = 0x003A,
+	SystemComPlusPackage = 0x003B,
+	SystemNumaAvailableMemory = 0x003C,
+	SystemProcessorPowerInformation = 0x003D,
+	SystemEmulationBasicInformation = 0x003E,
+	SystemEmulationProcessorInformation = 0x003F,
+	SystemExtendedHandleInformation = 0x0040,
+	SystemLostDelayedWriteInformation = 0x0041,
+	SystemBigPoolInformation = 0x0042,
+	SystemSessionPoolTagInformation = 0x0043,
+	SystemSessionMappedViewInformation = 0x0044,
+	SystemHotpatchInformation = 0x0045,
+	SystemObjectSecurityMode = 0x0046,
+	SystemWatchdogTimerHandler = 0x0047,
+	SystemWatchdogTimerInformation = 0x0048,
+	SystemLogicalProcessorInformation = 0x0049,
+	SystemWow64SharedInformationObsolete = 0x004A,
+	SystemRegisterFirmwareTableInformationHandler = 0x004B,
+	SystemFirmwareTableInformation = 0x004C,
+	SystemModuleInformationEx = 0x004D,
+	SystemVerifierTriageInformation = 0x004E,
+	SystemSuperfetchInformation = 0x004F,
+	SystemMemoryListInformation = 0x0050,
+	SystemFileCacheInformationEx = 0x0051,
+	SystemThreadPriorityClientIdInformation = 0x0052,
+	SystemProcessorIdleCycleTimeInformation = 0x0053,
+	SystemVerifierCancellationInformation = 0x0054,
+	SystemProcessorPowerInformationEx = 0x0055,
+	SystemRefTraceInformation = 0x0056,
+	SystemSpecialPoolInformation = 0x0057,
+	SystemProcessIdInformation = 0x0058,
+	SystemErrorPortInformation = 0x0059,
+	SystemBootEnvironmentInformation = 0x005A,
+	SystemHypervisorInformation = 0x005B,
+	SystemVerifierInformationEx = 0x005C,
+	SystemTimeZoneInformation = 0x005D,
+	SystemImageFileExecutionOptionsInformation = 0x005E,
+	SystemCoverageInformation = 0x005F,
+	SystemPrefetchPatchInformation = 0x0060,
+	SystemVerifierFaultsInformation = 0x0061,
+	SystemSystemPartitionInformation = 0x0062,
+	SystemSystemDiskInformation = 0x0063,
+	SystemProcessorPerformanceDistribution = 0x0064,
+	SystemNumaProximityNodeInformation = 0x0065,
+	SystemDynamicTimeZoneInformation = 0x0066,
+	SystemCodeIntegrityInformation = 0x0067,
+	SystemProcessorMicrocodeUpdateInformation = 0x0068,
+	SystemProcessorBrandString = 0x0069,
+	SystemVirtualAddressInformation = 0x006A,
+	SystemLogicalProcessorAndGroupInformation = 0x006B,
+	SystemProcessorCycleTimeInformation = 0x006C,
+	SystemStoreInformation = 0x006D,
+	SystemRegistryAppendString = 0x006E,
+	SystemAitSamplingValue = 0x006F,
+	SystemVhdBootInformation = 0x0070,
+	SystemCpuQuotaInformation = 0x0071,
+	SystemNativeBasicInformation = 0x0072,
+	SystemErrorPortTimeouts = 0x0073,
+	SystemLowPriorityIoInformation = 0x0074,
+	SystemBootEntropyInformation = 0x0075,
+	SystemVerifierCountersInformation = 0x0076,
+	SystemPagedPoolInformationEx = 0x0077,
+	SystemSystemPtesInformationEx = 0x0078,
+	SystemNodeDistanceInformation = 0x0079,
+	SystemAcpiAuditInformation = 0x007A,
+	SystemBasicPerformanceInformation = 0x007B,
+	SystemQueryPerformanceCounterInformation = 0x007C,
+	SystemSessionBigPoolInformation = 0x007D,
+	SystemBootGraphicsInformation = 0x007E,
+	SystemScrubPhysicalMemoryInformation = 0x007F,
+	SystemBadPageInformation = 0x0080,
+	SystemProcessorProfileControlArea = 0x0081,
+	SystemCombinePhysicalMemoryInformation = 0x0082,
+	SystemEntropyInterruptTimingInformation = 0x0083,
+	SystemConsoleInformation = 0x0084,
+	SystemPlatformBinaryInformation = 0x0085,
+	SystemThrottleNotificationInformation = 0x0086,
+	SystemHypervisorProcessorCountInformation = 0x0087,
+	SystemDeviceDataInformation = 0x0088,
+	SystemDeviceDataEnumerationInformation = 0x0089,
+	SystemMemoryTopologyInformation = 0x008A,
+	SystemMemoryChannelInformation = 0x008B,
+	SystemBootLogoInformation = 0x008C,
+	SystemProcessorPerformanceInformationEx = 0x008D,
+	SystemSpare0 = 0x008E,
+	SystemSecureBootPolicyInformation = 0x008F,
+	SystemPageFileInformationEx = 0x0090,
+	SystemSecureBootInformation = 0x0091,
+	SystemEntropyInterruptTimingRawInformation = 0x0092,
+	SystemPortableWorkspaceEfiLauncherInformation = 0x0093,
+	SystemFullProcessInformation = 0x0094,
+	MaxSystemInfoClass = 0x0095
+
+};
 
 
-typedef NTSYSAPI NTSTATUS(NTAPI* tNTReadVirtualMemory)(
-	HANDLE ProcessHandle,
+typedef enum _POOL_TYPE {
+
+	NonPagedPool,
+	NonPagedPoolExecute,
+	PagedPool,
+	NonPagedPoolMustSucceed,
+	DontUseThisType,
+	NonPagedPoolCacheAligned,
+	PagedPoolCacheAligned,
+	NonPagedPoolCacheAlignedMustS,
+	MaxPoolType,
+	NonPagedPoolBase,
+	NonPagedPoolBaseMustSucceed,
+	NonPagedPoolBaseCacheAligned,
+	NonPagedPoolBaseCacheAlignedMustS,
+	NonPagedPoolSession,
+	PagedPoolSession,
+	NonPagedPoolMustSucceedSession,
+	DontUseThisTypeSession,
+	NonPagedPoolCacheAlignedSession,
+	PagedPoolCacheAlignedSession,
+	NonPagedPoolCacheAlignedMustSSession,
+	NonPagedPoolNx,
+	NonPagedPoolNxCacheAligned,
+	NonPagedPoolSessionNx
+
+} POOL_TYPE;
+
+
+typedef enum _OBJECT_INFORMATION_CLASS {
+
+	ObjectBasicInformation,
+	ObjectNameInformation,
+	ObjectTypeInformation,
+	ObjectAllInformation,
+	ObjectDataInformation
+
+} OBJECT_INFORMATION_CLASS, * POBJECT_INFORMATION_CLASS;
+
+
+typedef struct _PROCESS_HANDLE_TABLE_ENTRY_INFO {
+
+	HANDLE HandleValue;
+	ULONG_PTR HandleCount;
+	ULONG_PTR PointerCount;
+	ULONG GrantedAccess;
+	ULONG ObjectTypeIndex;
+	ULONG HandleAttributes;
+	ULONG Reserved;
+
+} PROCESS_HANDLE_TABLE_ENTRY_INFO, * PPROCESS_HANDLE_TABLE_ENTRY_INFO;
+
+
+typedef struct _SYSTEM_PROCESS_INFORMATION {
+
+	ULONG NextEntryOffset; // Size=4 Offset=0
+	ULONG NumberOfThreads; // Size=4 Offset=4
+	LARGE_INTEGER WorkingSetPrivateSize; // Size=8 Offset=8
+	ULONG HardFaultCount; // Size=4 Offset=16
+	ULONG NumberOfThreadsHighWatermark; // Size=4 Offset=20
+	ULONGLONG CycleTime; // Size=8 Offset=24
+	LARGE_INTEGER CreateTime; // Size=8 Offset=32
+	LARGE_INTEGER UserTime; // Size=8 Offset=40
+	LARGE_INTEGER KernelTime; // Size=8 Offset=48
+	UNICODE_STRING ImageName; // Size=8 Offset=56
+	LONG BasePriority; // Size=4 Offset=64
+	PVOID UniqueProcessId; // Size=4 Offset=68
+	PVOID InheritedFromUniqueProcessId; // Size=4 Offset=72
+	ULONG HandleCount; // Size=4 Offset=76
+	ULONG SessionId; // Size=4 Offset=80
+	ULONG UniqueProcessKey; // Size=4 Offset=84
+	ULONG PeakVirtualSize; // Size=4 Offset=88
+	ULONG VirtualSize; // Size=4 Offset=92
+	ULONG PageFaultCount; // Size=4 Offset=96
+	ULONG PeakWorkingSetSize; // Size=4 Offset=100
+	ULONG WorkingSetSize; // Size=4 Offset=104
+	ULONG QuotaPeakPagedPoolUsage; // Size=4 Offset=108
+	ULONG QuotaPagedPoolUsage; // Size=4 Offset=112
+	ULONG QuotaPeakNonPagedPoolUsage; // Size=4 Offset=116
+	ULONG QuotaNonPagedPoolUsage; // Size=4 Offset=120
+	ULONG PagefileUsage; // Size=4 Offset=124
+	ULONG PeakPagefileUsage; // Size=4 Offset=128
+	ULONG PrivatePageCount; // Size=4 Offset=132
+	LARGE_INTEGER ReadOperationCount; // Size=8 Offset=136
+	LARGE_INTEGER WriteOperationCount; // Size=8 Offset=144
+	LARGE_INTEGER OtherOperationCount; // Size=8 Offset=152
+	LARGE_INTEGER ReadTransferCount; // Size=8 Offset=160
+	LARGE_INTEGER WriteTransferCount; // Size=8 Offset=168
+	LARGE_INTEGER OtherTransferCount; // Size=8 Offset=176
+
+} SYSTEM_PROCESS_INFORMATION;
+
+
+typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO {
+
+	USHORT UniqueProcessId;
+	USHORT CreatorBackTraceIndex;
+	UCHAR ObjectTypeIndex;
+	UCHAR HandleAttributes;
+	USHORT HandleValue;
+	PVOID Object;
+	ULONG GrantedAccess;
+
+}SYSTEM_HANDLE_TABLE_ENTRY_INFO, *PSYSTEM_HANDLE_TABLE_ENTRY_INFO;
+
+
+typedef struct _SYSTEM_HANDLE_INFORMATION {
+
+	DWORD NumberOfHandles;
+	SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[ANYSIZE_ARRAY];
+
+} SYSTEM_HANDLE_INFORMATION, * PSYSTEM_HANDLE_INFORMATION;
+
+
+typedef struct _CLIENT_ID
+{
+
+	PVOID UniqueProcess;
+	PVOID UniqueThread;
+
+} CLIENT_ID, * PCLIENT_ID;
+
+
+typedef struct _THREAD_BASIC_INFORMATION {
+
+	NTSTATUS                ExitStatus;
+	PVOID                   TebBaseAddress;
+	CLIENT_ID               ClientId;
+	KAFFINITY               AffinityMask;
+	LONG					Priority;
+	LONG	                BasePriority;
+
+} THREAD_BASIC_INFORMATION, * PTHREAD_BASIC_INFORMATION;
+
+
+typedef struct _PUBLIC_OBJECT_BASIC_INFORMATION {
+
+	ULONG       Attributes;
+	ACCESS_MASK GrantedAccess;
+	ULONG       HandleCount;
+	ULONG       PointerCount;
+	ULONG       Reserved[10];
+
+} PUBLIC_OBJECT_BASIC_INFORMATION, * PPUBLIC_OBJECT_BASIC_INFORMATION;
+
+
+typedef struct _OBJECT_BASIC_INFORMATION {
+
+	ULONG                   Attributes;
+	ACCESS_MASK             GrantedAccess;
+	ULONG                   HandleCount;
+	ULONG                   ReferenceCount;
+	ULONG                   PagedPoolUsage;
+	ULONG                   NonPagedPoolUsage;
+	ULONG                   Reserved[3];
+	ULONG                   NameInformationLength;
+	ULONG                   TypeInformationLength;
+	ULONG                   SecurityDescriptorLength;
+	LARGE_INTEGER           CreationTime;
+
+} OBJECT_BASIC_INFORMATION, * POBJECT_BASIC_INFORMATION;
+
+
+typedef struct _OBJECT_NAME_INFORMATION {
+
+	UNICODE_STRING          Name;
+	WCHAR                   NameBuffer[0];
+
+} OBJECT_NAME_INFORMATION, * POBJECT_NAME_INFORMATION;
+
+
+typedef struct _OBJECT_DATA_INFORMATION {
+
+	BOOLEAN                 InheritHandle;
+	BOOLEAN                 ProtectFromClose;
+
+} OBJECT_DATA_INFORMATION, * POBJECT_DATA_INFORMATION;
+
+
+typedef struct _OBJECT_TYPE_INFORMATION {
+
+	UNICODE_STRING          TypeName;
+	ULONG                   TotalNumberOfHandles;
+	ULONG                   TotalNumberOfObjects;
+	WCHAR                   Unused1[8];
+	ULONG                   HighWaterNumberOfHandles;
+	ULONG                   HighWaterNumberOfObjects;
+	WCHAR                   Unused2[8];
+	ACCESS_MASK             InvalidAttributes;
+	GENERIC_MAPPING         GenericMapping;
+	ACCESS_MASK             ValidAttributes;
+	BOOLEAN                 SecurityRequired;
+	BOOLEAN                 MaintainHandleCount;
+	USHORT                  MaintainTypeList;
+	POOL_TYPE               PoolType;
+	ULONG                   DefaultPagedPoolCharge;
+	ULONG                   DefaultNonPagedPoolCharge;
+
+} OBJECT_TYPE_INFORMATION, * POBJECT_TYPE_INFORMATION;
+
+
+typedef struct _OBJECT_ALL_INFORMATION {
+
+	ULONG                   NumberOfObjectsTypes;
+	OBJECT_TYPE_INFORMATION ObjectTypeInformation[1];
+
+} OBJECT_ALL_INFORMATION, * POBJECT_ALL_INFORMATION;
+
+
+typedef NTSYSAPI NTSTATUS(NTAPI* tNtQueryVirtualMemory)(
+	HANDLE hProcess,
+	PVOID BaseAddress,
+	INT MemoryInformationClass,
+	PVOID MemoryInformation,
+	SIZE_T MemoryInformationLength,
+	PSIZE_T ReturnLength
+	);
+
+
+typedef NTSYSAPI NTSTATUS(NTAPI* tNtReadVirtualMemory)(
+	HANDLE hProcess,
 	PVOID BaseAddress,
 	PVOID Buffer,
 	ULONG NumberOfBytesToRead,
-	PULONG NumberOfBytesRead   OPTIONAL
+	PULONG NumberOfBytesRead OPTIONAL
 	);
 
 
-typedef NTSYSAPI NTSTATUS(NTAPI* tNTWriteVirtualMemory)(
-	HANDLE ProcessHandle,
+typedef NTSYSAPI NTSTATUS(NTAPI* tNtWriteVirtualMemory)(
+	HANDLE hProcess,
 	PVOID BaseAddress,
 	PVOID Buffer,
 	ULONG NumberOfBytesToWrite,
-	PULONG NumberOfBytesWritten   OPTIONAL
+	PULONG NumberOfBytesWritten OPTIONAL
 	);
 
 
-typedef NTSTATUS(NTAPI* tNTQuerySystemInformation)(
+typedef NTSTATUS(NTAPI* tNtQuerySystemInformation)(
 	DWORD SystemInformationClass,
 	PVOID SystemInformation,
 	ULONG SystemInformationLength,
 	PULONG ReturnLength
+	);
+
+
+typedef NTSTATUS (NTAPI* tNtQueryInformationProcess)(
+	IN HANDLE hProcess,
+	IN PROCESS_INFORMATION_CLASS ProcessInformationClass,
+	OUT PVOID ProcessInformation,
+	IN ULONG ProcessInformationLength,
+	OUT PULONG ReturnLength
+	);
+
+
+typedef NTSTATUS(NTAPI* tNtQueryInformationThread) (
+	IN HANDLE	ThreadHandle,
+	IN INT		ThreadInformationClass,
+	OUT PVOID	ThreadInformation,
+	IN ULONG	ThreadInformationLength,
+	OUT PULONG	ReturnLength OPTIONAL
+	);
+
+
+typedef NTSTATUS(NTAPI* tNtQueryTimerResolution) (
+	OUT PULONG MinimumResolution,
+	OUT PULONG MaximumResolution,
+	OUT PULONG CurrentResolution
+	);
+
+typedef NTSTATUS(NTAPI* tNtSuspendResumeProcess)(
+	IN HANDLE hProcess
+	);
+
+
+typedef NTSTATUS(NTAPI* tNtGetSetContextThread)(
+	HANDLE ThreadHandle,
+	PCONTEXT ThreadContext
 	);
 
 
@@ -71,20 +494,52 @@ typedef NTSTATUS(NTAPI* tRtlGetVersion)(
 	);
 
 
-tNTQuerySystemInformation pNtQuerySystemInformation = nullptr;
-tNTReadVirtualMemory pNtReadVirtualMemory = nullptr;
-tNTWriteVirtualMemory pNtWriteVirtualMemory = nullptr;
+typedef NTSTATUS(NTAPI* tZwLoadDriver)(
+	PUNICODE_STRING DriverServiceName
+	);
+
+
+typedef NTSTATUS(NTAPI* tNtQueryObject)(
+	HANDLE Object,
+	OBJECT_INFORMATION_CLASS ObjectInformationClass,
+	PVOID ObjectInformation,
+	ULONG ObjectInformationLength,
+	PULONG ReturnLength
+	);
+
+
+tNtQueryVirtualMemory pNtQueryVirtualMemory = nullptr;
+tNtQuerySystemInformation pNtQuerySystemInformation = nullptr;
+tNtReadVirtualMemory pNtReadVirtualMemory = nullptr;
+tNtWriteVirtualMemory pNtWriteVirtualMemory = nullptr;
+tNtQueryInformationProcess pNtQueryInformationProcess = nullptr;
+tNtQueryInformationThread pNtQueryInformationThread = nullptr;
+tNtQueryTimerResolution pNtQueryTimerResolution = nullptr;
+tNtSuspendResumeProcess pNtSuspendProcess = nullptr;
+tNtSuspendResumeProcess pNtResumeProcess = nullptr;
+tNtGetSetContextThread pNtGetContextThread = nullptr;
+tNtGetSetContextThread pNtSetContextThread = nullptr;
+tNtQueryObject pNtQueryObject = nullptr;
 tRtlCompareUnicodeString pRtlCompareUnicodeString = nullptr;
 tRtlGetVersion pRtlGetVersion = nullptr;
+tZwLoadDriver pZwLoadDriver = nullptr;
 
 
+NTSTATUS NtQueryVirtualMemory(HANDLE hProcess, PVOID BaseAddress, INT MemoryInformationClass, PVOID MemoryInformation, SIZE_T MemoryInformationLength, PSIZE_T ReturnLength);
 NTSTATUS NtQuerySystemInformation(DWORD SystemInformationClass, PVOID SystemInformation, DWORD SystemInformationLength, PDWORD ReturnLength);
 NTSTATUS NtReadVirtualMemory(HANDLE hProcess, PVOID Address, PVOID Buffer, DWORD Size, PDWORD BytesRead);
 NTSTATUS NtWriteVirtualMemory(HANDLE hProcess, PVOID Address, PVOID Buffer, DWORD Size, PDWORD BytesWritten);
+NTSTATUS NtQueryInformationProcess(HANDLE hProcess, PROCESS_INFORMATION_CLASS ProcessInformationClass, PVOID ProcessInformation, ULONG ProcessInformationLength, PULONG ReturnLength);
+NTSTATUS NtQueryInformationThread(HANDLE ThreadHandle, INT ThreadInformationClass, PVOID ThreadInformation, ULONG ThreadInformationLength, PULONG ReturnLength OPTIONAL);
+NTSTATUS NtQueryTimerResolution(PULONG MinimumResolution, PULONG MaximumResolution, PULONG CurrentResolution);
+NTSTATUS NtSuspendProcess(HANDLE hProcess);
+NTSTATUS NtResumeProcess(HANDLE hProcess);
+NTSTATUS NtGetContextThread(HANDLE hThread, PCONTEXT ThreadContext);
+NTSTATUS NtSetContextThread(HANDLE hThread, PCONTEXT ThreadContext);
+NTSTATUS NtQueryObject(HANDLE Object, OBJECT_INFORMATION_CLASS ObjectInformationClass, PVOID ObjectInformation, ULONG ObjectInformationLength, PULONG ReturnLength);
 NTSTATUS RtlCompareUnicodeString(PUNICODE_STRING String1, PUNICODE_STRING String2, BOOLEAN CaseInSesitive);
 NTSTATUS RtlGetVersion(PRTL_OSVERSIONINFOW pVersionInfo);
-
-
+NTSTATUS ZwLoadDriver(PUNICODE_STRING DriverServiceName);
 
 
 DWORD GetProcessID(const wchar_t* ProcessName) {
@@ -122,17 +577,17 @@ DWORD GetModuleSize(DWORD ProcessID, const wchar_t* ModuleName) {
 
 
 HANDLE GetHandle(DWORD ProcessID) {
-	return OpenProcess(PROCESS_ALL_ACCESS, false, ProcessID);
+	return OpenProcess(MAXIMUM_ALLOWED, false, ProcessID);
 }
 
 
 DWORD64 GetBaseAddress(const wchar_t* ProcessName, HANDLE hProcess) {
 	HMODULE Modules[1024];
-	DWORD v = 0;
+	DWORD SizeRequired = 0;
 	wchar_t Name[MAX_PATH];
 
-	if (K32EnumProcessModules(hProcess, Modules, sizeof(Modules), &v)) {
-		for (auto i = 0; i < (v / sizeof(HMODULE)); i++) {
+	if (K32EnumProcessModules(hProcess, Modules, sizeof(Modules), &SizeRequired)) {
+		for (auto i = 0; i < (SizeRequired / sizeof(HMODULE)); i++) {
 			if (K32GetModuleFileNameExW(hProcess, Modules[i], Name, sizeof(Name) / sizeof(wchar_t))) {
 				std::wstring ModuleName = Name;
 				if (ModuleName.find(ProcessName) != std::string::npos) {
@@ -163,31 +618,43 @@ DWORD GetProcessIDFromWindowW(const wchar_t* WindowName) {
 }
 
 
-template <typename dynamic>
-dynamic ReadMemory(HANDLE hProcess, DWORD64 Address, SIZE_T Size) {
-	dynamic r = {};
-	ReadProcessMemory(hProcess, reinterpret_cast<PVOID>(Address), static_cast<PVOID>(&r), Size, nullptr);
-	return r;
+template <typename T>
+T ReadMemory(HANDLE hProcess, DWORD64 Address, SIZE_T Size) {
+	T ReadData = {};
+	ReadProcessMemory(hProcess, reinterpret_cast<PVOID>(Address), static_cast<PVOID>(&ReadData), Size, nullptr);
+	return ReadData;
 }
 
 
-template <typename dynamic>
-BOOL WriteMemory(HANDLE	hProcess, DWORD64 Address, dynamic Data, SIZE_T Size) {
+template <typename T>
+BOOL WriteMemory(HANDLE	hProcess, DWORD64 Address, T Data, SIZE_T Size) {
 	return WriteProcessMemory(hProcess, reinterpret_cast<PVOID>(Address), static_cast<PVOID>(&Data), Size, nullptr);
 }
 
 
-template <typename dynamic>
-dynamic CopyProcessMemory(HANDLE hProcess, DWORD64 Address, SIZE_T Size, BOOL ReadOperation, dynamic Data) {
+template <typename T>
+T CopyProcessMemory(HANDLE hProcess, DWORD64 Address, SIZE_T Size, BOOL ReadOperation, T Data) {
 	if (ReadOperation == TRUE) {
-		dynamic r = {};
-		ReadProcessMemory(hProcess, reinterpret_cast<PVOID>(Address), static_cast<PVOID>(&r), Size, nullptr);
-		return r;
+		T ReadData = {};
+		ReadProcessMemory(hProcess, reinterpret_cast<PVOID>(Address), static_cast<PVOID>(&ReadData), Size, nullptr);
+		return ReadData;
 	}
 	else {
 		WriteProcessMemory(hProcess, reinterpret_cast<PVOID>(Address), static_cast<PVOID>(&Data), Size, nullptr);
 		return {};
 	}
+}
+
+
+DWORD64 ReadPointerChain(HANDLE hProcess, DWORD64 Base, int NumberOfPointers, ...) {
+	va_list List;
+	va_start(List, NumberOfPointers);
+
+	for (int i = 0; i < NumberOfPointers; ++i) {
+		Base = ReadMemory<DWORD64>(hProcess, Base + va_arg(List, DWORD64), sizeof(DWORD64));
+	} va_end(List);
+
+	return Base;
 }
 
 
@@ -211,7 +678,7 @@ BOOL FreeMemoryEx(HANDLE hProcess, DWORD64 Address) {
 }
 
 
-BOOL CompareData(const BYTE * Data, const BYTE * Signature, const char* Mask) {
+BOOL CompareData(const BYTE* Data, const BYTE* Signature, const char* Mask) {
 	for (; *Mask; ++Mask, ++Data, ++Signature) {
 		if (*Mask == 'x' && *Data != *Signature) {
 			return FALSE;
@@ -223,11 +690,9 @@ BOOL CompareData(const BYTE * Data, const BYTE * Signature, const char* Mask) {
 
 DWORD64 PatternFinder(HANDLE hProcess, DWORD64 Address, DWORD64 Size, const char* Signature, const char* Mask) {
 	auto Buffer = AllocateMemory(Size);
-
 	ReadProcessMemory(hProcess, reinterpret_cast<LPCVOID>(Address), Buffer, Size, nullptr);
 
 	for (DWORD64 i = 0; i < Size; i++) {
-
 		if (CompareData(const_cast<BYTE*>(static_cast<BYTE*>(Buffer) + i), reinterpret_cast<const BYTE*>(Signature), Mask)) {
 			FreeMemory(Buffer);
 			return Address + i;
@@ -263,6 +728,26 @@ BOOL IsProcessRunning(const wchar_t* ProcessName) {
 }
 
 
+STORAGE_DEVICE_DESCRIPTOR* QueryDiskInformation() {
+	DWORD IoRetBytes{ NULL };
+    STORAGE_DESCRIPTOR_HEADER Header{ NULL };
+	STORAGE_PROPERTY_QUERY QueryInfo{ StorageDeviceProperty, PropertyStandardQuery };
+
+	HANDLE hDisk{ CreateFileW(L"\\\\.\\PhysicalDrive0", 0, 0, nullptr, OPEN_EXISTING, 0, nullptr) };
+
+	if (hDisk != INVALID_HANDLE_VALUE) {
+		if (DeviceIoControl(hDisk, IOCTL_STORAGE_QUERY_PROPERTY, &QueryInfo, sizeof(QueryInfo),&Header, sizeof(Header), &IoRetBytes, nullptr)) {
+			if (auto DiskInfo{ static_cast<STORAGE_DEVICE_DESCRIPTOR*>(VirtualAlloc(nullptr, Header.Size, MEM_COMMIT, PAGE_READWRITE)) }) {
+				DeviceIoControl(hDisk, IOCTL_STORAGE_QUERY_PROPERTY, &QueryInfo, sizeof(QueryInfo), DiskInfo, Header.Size, &IoRetBytes, nullptr);
+				return DiskInfo;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+
 BOOL BeingDebugged(BOOL	CurrentProcess, const wchar_t* ProcessName OPTIONAL) {
 	BOOL DebuggerPresent = FALSE;
 
@@ -285,16 +770,92 @@ BOOL BeingDebugged(BOOL	CurrentProcess, const wchar_t* ProcessName OPTIONAL) {
 	return FALSE;
 }
 
+std::string RemoveWhitespaces(std::string);
 
-BOOL WindowScanA(char* WindowName) {
-	auto wnd = FindWindowA(nullptr, WindowName);
-	return (!wnd) ? FALSE : TRUE;
+
+BOOL EnumerateWindows(const char* WindowName) {
+	struct Params {
+		BOOL Result;
+		const char* Name;
+	};
+
+	auto WindowEnumCallback = [](HWND Window, LPARAM LParam) -> BOOL {
+		auto Args = (Params*)LParam;
+		auto Size = GetWindowTextLengthA(Window);
+		auto WindowText = new char[Size + 1ull];
+
+		GetWindowTextA(Window, WindowText, Size + 1);
+		Args->Result = (strcmp(RemoveWhitespaces(WindowText).c_str(), Args->Name) == 0 ? TRUE : FALSE);
+		return (!Args->Result);
+	};
+
+	Params Args = { 0, WindowName };
+	EnumWindows(WindowEnumCallback, reinterpret_cast<LPARAM>(&Args));
+	return Args.Result;
 }
 
 
-BOOL WindowScanW(wchar_t* WindowName) {
-	auto wnd = FindWindowW(nullptr, WindowName);
-	return (!wnd) ? FALSE : TRUE;
+BOOL WindowScanA(const char* WindowName) {
+	return FindWindowA(nullptr, WindowName) ? TRUE : FALSE;
+}
+
+
+BOOL WindowScanW(const wchar_t* WindowName) {
+	return FindWindowW(nullptr, WindowName) ? TRUE : FALSE;
+}
+
+
+BOOL EnumerateDrivers() {
+	PVOID Drivers[1024];
+	DWORD RequiredSize = NULL;
+
+	if (K32EnumDeviceDrivers(Drivers, sizeof(Drivers), &RequiredSize)) {
+		auto DriverCount = RequiredSize / sizeof(PVOID);
+		for (int i = 0; i < DriverCount; i++) {
+			wchar_t Buffer[256];
+			K32GetDeviceDriverBaseNameW(Drivers[i], Buffer, 256);
+		}
+		return TRUE;
+	}
+	return FALSE;
+}
+
+
+BOOL IsDriverLoaded(wchar_t* DriverName) {
+	PVOID Drivers[1024];
+	DWORD RequiredSize = NULL;
+
+	if (K32EnumDeviceDrivers(Drivers, sizeof(Drivers), &RequiredSize)) {
+		auto DriverCount = RequiredSize / sizeof(PVOID);
+		for (int i = 0; i < DriverCount; i++) {
+			wchar_t Buffer[256];
+			K32GetDeviceDriverBaseNameW(Drivers[i], Buffer, 256);
+
+			if (!wcscmp(Buffer, DriverName)) {
+				return TRUE;
+			}
+		}
+	} 
+	
+	return FALSE;
+}
+
+
+DWORD64 ResolveRelativeAddress(HANDLE hProcess, DWORD64 RIP, DWORD InstructionLength) {
+	DWORD RelativeOffset{ 0 };
+
+	ReadProcessMemory(hProcess, 
+					  reinterpret_cast<PVOID>(RIP + InstructionLength - 4), 
+					  &RelativeOffset, 
+					  sizeof(DWORD), 
+					  nullptr);
+
+	return RIP + InstructionLength + RelativeOffset;
+}
+
+
+BOOL KeyWasPressed(int Key) {
+	return GetAsyncKeyState(Key);
 }
 
 
@@ -315,6 +876,20 @@ BOOL DoesFileExist(const char* FileName) {
 	}
 }
 
+HANDLE SpawnThread(PVOID StartRoutine, PVOID LP = nullptr, DWORD* ThreadId = nullptr) {
+	return CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(StartRoutine), LP, 0, ThreadId);
+}
+
+void AppendString(std::string& SourceString, int NumberOfStrings, ...) {
+	va_list List;
+	va_start(List, NumberOfStrings);
+
+	for (int i = 0; i < NumberOfStrings; ++i) {
+		auto ToAppend = va_arg(List, char*);
+		SourceString.append(ToAppend);
+	} va_end(List);
+}
+
 
 BOOL StringToBool(std::string SourceString) {
 	if (SourceString == "false" || SourceString == "False" || SourceString == "FALSE") {
@@ -323,7 +898,93 @@ BOOL StringToBool(std::string SourceString) {
 }
 
 
-std::string GenerateRandomStringA(std::size_t Length, BOOL Numbers, DWORD Capitalization) {
+int SecondsToMilliseconds(int Seconds) {
+	return Seconds * 1000;
+}
+
+
+int MinutesToSeconds(int Minutes) {
+	return Minutes * 60;
+}
+
+
+int MinutesToMilliseconds(int Minutes) {
+	return ((Minutes * 60) * 1000);
+}
+
+
+void SleepS(int Seconds) {
+	Sleep(SecondsToMilliseconds(Seconds));
+}
+
+
+void SleepM(int Minutes) {
+	Sleep(MinutesToMilliseconds(Minutes));
+}
+
+
+std::string GetTime() {
+	SYSTEMTIME Time = { 0 };
+	GetLocalTime(&Time);
+
+	std::string TimeString = std::to_string(Time.wHour);
+	AppendString(TimeString, 4, ":", std::to_string(Time.wMinute), ":", std::to_string(Time.wSecond));
+
+	return TimeString;
+}
+
+
+int RandomInteger(int Min = 0, int Max = 200) {
+	std::random_device RandomDevice;
+	std::mt19937 RNG(RandomDevice());
+	std::uniform_int_distribution<> Dist(Min, Max);
+
+	return Dist(RNG);
+}
+
+
+float RandomFloat(float Min = 0.0f, float Max = 100.0f) {
+Start:
+
+	std::random_device RandomDevice;
+	std::mt19937 RNG(RandomDevice());
+	std::uniform_int_distribution<> Dist(Min, Max);
+
+	float MainFloat = Dist(RNG);
+	int Factorial = Dist(RNG);
+
+	std::string MainString = std::to_string(MainFloat);
+
+	if (MainFloat < 100.0f) {
+		MainString.replace(3, 5, std::to_string(Factorial));
+	}
+	else if (MainFloat < 1000.0f) {
+		MainString.replace(4, 6, std::to_string(Factorial));
+	}
+	else if (MainFloat < 1000.0f) {
+		MainString.replace(5, 7, std::to_string(Factorial));
+	}
+	else if (MainFloat < 100000.0f) {
+		MainString.replace(6, 8, std::to_string(Factorial));
+	}
+	else if (MainFloat < 10000000.0f) {
+		MainString.replace(8, 10, std::to_string(Factorial));
+	}
+	else {
+		return 0.0f;
+	}
+
+	float RandomFloat = std::stof(MainString);
+
+	if (RandomFloat > Max) {
+		RandomFloat = Max;
+	} if (RandomFloat < 0.0f) {
+		goto Start;
+	} return RandomFloat;
+}
+
+
+std::string RandomStringA(std::size_t Length, BOOL Numbers, DWORD Capitalization) {
 	std::string GeneratedString;
 	std::string Alphabet;
 
@@ -349,17 +1010,17 @@ std::string GenerateRandomStringA(std::size_t Length, BOOL Numbers, DWORD Capita
 		Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 	}
 
-	std::uniform_int_distribution<> dist(0, Alphabet.size() - 1);
+	std::uniform_int_distribution<> Dist(0, Alphabet.size() - 1);
 
 	for (std::size_t i = 0; i < Length; ++i) {
-		GeneratedString += Alphabet[dist(RNG)];
+		GeneratedString += Alphabet[Dist(RNG)];
 	}
 
 	return GeneratedString;
 }
 
 
-std::wstring GenerateRandomStringW(std::size_t Length, BOOL Numbers, DWORD Capitalization) {
+std::wstring RandomStringW(std::size_t Length, BOOL Numbers, DWORD Capitalization) {
 	std::wstring GeneratedString;
 	std::wstring Alphabet;
 
@@ -385,10 +1046,10 @@ std::wstring GenerateRandomStringW(std::size_t Length, BOOL Numbers, DWORD Capit
 		Alphabet = L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 	}
 
-	std::uniform_int_distribution<> dist(0, Alphabet.size() - 1);
+	std::uniform_int_distribution<> Dist(0, Alphabet.size() - 1);
 
 	for (std::size_t i = 0; i < Length; ++i) {
-		GeneratedString += Alphabet[dist(RNG)];
+		GeneratedString += Alphabet[Dist(RNG)];
 	}
 
 	return GeneratedString;
@@ -421,6 +1082,16 @@ UNICODE_STRING ReturnUnicodeString(wchar_t* SourceString) {
 }
 
 
+template <typename T>
+T GetFunctionPointer(const char* Module, const char* Function) {
+	if (Module && Function) {
+		return reinterpret_cast<T>(GetProcAddress(LoadLibraryA(Module), Function));
+	} else {
+		return nullptr;
+	}
+}
+
+
 VOID Launch(std::string Path) {
 	Path.insert(0, "start ");
 	system(Path.c_str());
@@ -436,51 +1107,71 @@ VOID PrintPeriods(int Count, int ms) {
 
 
 VOID Print(std::string Text) {
+	std::flush(std::cout);
 	std::cout << Text;
 }
 
 
+VOID Print(int NumberOfStrings, ...) {
+	va_list List;
+	va_start(List, NumberOfStrings);
+
+	for (int i = 0; i < NumberOfStrings; ++i) {
+		std::cout << va_arg(List, char*);
+	} va_end(List);
+}
+
+
 VOID PrintS(std::string Text) {
+	std::flush(std::cout);
 	std::cout << Text << "\n";
 }
 
 
 VOID Print(std::string Text, std::string Text2) {
+	std::flush(std::cout);
 	std::cout << Text << Text2;
 }
 
 
 VOID PrintS(std::string Text, std::string Text2) {
+	std::flush(std::cout);
 	std::cout << Text << Text2 << "\n";
 }
 
 
 VOID PrintHex(PVOID Hex) {
+	std::flush(std::cout);
 	std::cout << "0x" << std::uppercase << std::hex << Hex;
 }
 
 
 VOID PrintHexS(PVOID Hex) {
+	std::flush(std::cout);
 	std::cout << "0x" << std::uppercase << std::hex << Hex << "\n";
 }
 
 
 VOID PrintHex(DWORD64 Hex) {
+	std::flush(std::cout);
 	std::cout << "0x" << std::uppercase << std::hex << Hex;
 }
 
 
 VOID PrintHexS(DWORD64 Hex) {
+	std::flush(std::cout);
 	std::cout << "0x" << std::uppercase << std::hex << Hex << "\n";
 }
 
 
 VOID PrintFloat(float Value, int Precision) {
+	std::flush(std::cout);
 	std::cout << std::fixed << std::setprecision(Precision) << Value;
 }
 
 
 VOID PrintFloatS(float Value, int Precision) {
+	std::flush(std::cout);
 	std::cout << std::fixed << std::setprecision(Precision) << Value << "\n";
 }
 
@@ -533,132 +1224,11 @@ std::string RemoveWhitespaces(std::string SourceString) {
 }
 
 
-PVOID GetFunctionPointer(const char* Module, const char* Function) {
-	if (Module && Function) {
-		return static_cast<PVOID>(GetProcAddress(GetModuleHandleA(Module), Function));
-	}
-	else {
-		return nullptr;
-	}
-}
-
-
-VOID InitImports() {
-	pNtQuerySystemInformation = static_cast<tNTQuerySystemInformation>(GetFunctionPointer("ntdll.dll", "NtQuerySystemInformation"));
-	pNtReadVirtualMemory = static_cast<tNTReadVirtualMemory>(GetFunctionPointer("ntdll.dll", "NtReadVirtualMemory"));
-	pNtWriteVirtualMemory = static_cast<tNTWriteVirtualMemory>(GetFunctionPointer("ntdll.dll", "NtWriteVirtualMemory"));
-	pRtlCompareUnicodeString = static_cast<tRtlCompareUnicodeString>(GetFunctionPointer("ntdll.dll", "RtlCompareUnicodeString"));
-	pRtlGetVersion = static_cast<tRtlGetVersion>(GetFunctionPointer("ntdll.dll", "RtlGetVersion"));
-}
-
-
-BOOL IsEqualUnicodeString(PUNICODE_STRING String1, PUNICODE_STRING String2, BOOL CaseInSesitive) {
-	if (pRtlCompareUnicodeString == nullptr) {
-		pRtlCompareUnicodeString = static_cast<tRtlCompareUnicodeString>(GetFunctionPointer("ntdll.dll", "RtlCompareUnicodeString"));
-	}
-	if (!RtlCompareUnicodeString(String1, String2, CaseInSesitive)) {
-		return TRUE;
-	} return FALSE;
-}
-
-
 RTL_OSVERSIONINFOW GetOSInfo() {
 	RTL_OSVERSIONINFOW OSInfo = { 0 };
-
-	if (pRtlGetVersion == nullptr) {
-		pRtlGetVersion = static_cast<tRtlGetVersion>(GetFunctionPointer("ntdll.dll", "RtlGetVersion"));
-	}
-
 	RtlGetVersion(&OSInfo);
 	return OSInfo;
 }
-
-
-std::string OSMajorVersionToString(DWORD MajorVersion, DWORD MinorVersion) {
-	if (MajorVersion == 10) {
-		return "Windows 10";
-	}
-
-	if (MajorVersion == 6) {
-		if (MinorVersion == 3) {
-			return "Windows 8.1";
-		}
-		else if (MinorVersion == 2) {
-			return "Windows 8";
-		}
-		else if (MinorVersion == 1) {
-			return "Windows 7";
-		}
-	} return "Unsupported";
-}
-
-
-std::wstring OSMajorVersionToStringW(DWORD MajorVersion, DWORD MinorVersion) {
-	if (MajorVersion == 10) {
-		return L"Windows 10";
-	}
-
-	if (MajorVersion == 6) {
-		if (MinorVersion == 3) {
-			return L"Windows 8.1";
-		}
-		else if (MinorVersion == 2) {
-			return L"Windows 8";
-		}
-		else if (MinorVersion == 1) {
-			return L"Windows 7";
-		}
-	} return L"Unsupported";
-}
-
-
-std::string GetWinVer() {
-	auto v = GetOSInfo();
-	return OSMajorVersionToString(v.dwMajorVersion, v.dwMinorVersion);
-}
-
-
-std::wstring GetWinVerW() {
-	auto v = GetOSInfo();
-	return OSMajorVersionToStringW(v.dwMajorVersion, v.dwMinorVersion);
-}
-
-
-NTSTATUS NtQuerySystemInformation(DWORD SystemInformationClass, PVOID SystemInformation, DWORD SystemInformationLength, PDWORD ReturnLength) {
-	if (!pNtQuerySystemInformation) {
-		InitImports();
-	} return pNtQuerySystemInformation(SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength);
-}
-
-
-NTSTATUS NtReadVirtualMemory(HANDLE hProcess, PVOID Address, PVOID Buffer, DWORD Size, PDWORD BytesRead) {
-	if (!pNtReadVirtualMemory) {
-		InitImports();
-	} return pNtReadVirtualMemory(hProcess, Address, Buffer, Size, BytesRead);
-}
-
-
-NTSTATUS NtWriteVirtualMemory(HANDLE hProcess, PVOID Address, PVOID Buffer, DWORD Size, PDWORD BytesWritten) {
-	if (!pNtWriteVirtualMemory) {
-		InitImports();
-	} return pNtWriteVirtualMemory(hProcess, Address, Buffer, Size, BytesWritten);
-}
-
-
-NTSTATUS RtlCompareUnicodeString(PUNICODE_STRING String1, PUNICODE_STRING String2, BOOLEAN CaseInSesitive) {
-	if (!pRtlCompareUnicodeString) {
-		InitImports();
-	} return pRtlCompareUnicodeString(String1, String2, CaseInSesitive);
-}
-
-
-NTSTATUS RtlGetVersion(PRTL_OSVERSIONINFOW pVersionInfo) {
-	if (!pRtlGetVersion) {
-		InitImports();
-	} return pRtlGetVersion(pVersionInfo);
-}
-
-
 
 
 class Directories {
@@ -761,8 +1331,6 @@ public:
 }; Directories Path;
 
 
-
-
 class Process {
 public:
 	std::wstring Name = L"";
@@ -771,20 +1339,22 @@ public:
 	DWORD64 BaseAddress = 0;
 	DWORD Size = 0;
 
-	Process(std::wstring Name) {
+
+	Process(std::wstring Name, HANDLE Handle) {
 		this->Name = Name;
 		this->ProcessID = GetProcessID(Name.c_str());
-		this->Handle = GetHandle(this->ProcessID);
+		this->Handle = (Handle == nullptr ? GetHandle(this->ProcessID) : Handle);
 		this->BaseAddress = GetBaseAddress(this->Name.c_str(), this->Handle);
 		this->Size = GetModuleSize(this->ProcessID, this->Name.c_str());
-
 	}
+
 
 	bool IsValid() const {
 		if (this->Name.c_str() != nullptr && this->ProcessID && this->Handle != INVALID_HANDLE_VALUE && this->BaseAddress) {
 			return true;
 		} return false;
 	}
+
 
 	void Print() const {
 		std::wcout << L"Name: " << this->Name << "\n";
@@ -794,39 +1364,48 @@ public:
 		std::cout << "Size: " << std::uppercase << std::hex << this->Size << "\n";
 	}
 
-	template <typename dynamic>
-	dynamic Read(DWORD64 Address, SIZE_T Size) const {
-		return ReadMemory<dynamic>(this->Handle, Address, Size);
+
+	template <typename T>
+	T Read(DWORD64 Address, SIZE_T Size) const {
+		return ReadMemory<T>(this->Handle, Address, Size);
 	}
 
-	template <typename dynamic>
-	bool Write(DWORD64 Address, dynamic Data, SIZE_T Size) const {
-		return WriteMemory<dynamic>(this->Handle, Address, Data, Size);
+
+	template <typename T>
+	bool Write(DWORD64 Address, T Data, SIZE_T Size) const {
+		return WriteMemory<T>(this->Handle, Address, Data, Size);
 	}
+
 
 	DWORD64 Scan(DWORD64 Start, DWORD Size, const char* Signature, const char* Mask) const {
 		return PatternFinder(this->Handle, Start, Size, Signature, Mask);
 	}
 
+
 	DWORD64 Scan(const char* Signature, const char* Mask) const {
 		return PatternFinder(this->Handle, this->BaseAddress, this->Size, Signature, Mask);
 	}
+
 
 	PVOID AllocateMemory(DWORD64 Address, SIZE_T Size) {
 		return AllocateMemoryEx(this->Handle, Address, Size);
 	}
 
+
 	PVOID FreeMemory(DWORD64 Address) {
 		FreeMemoryEx(this->Handle, Address);
 	}
+
 
 	bool IsDebuggerPresent() const {
 		return BeingDebugged(true, this->Name.c_str());
 	}
 
+
 	bool IsRunning() const {
 		return IsProcessRunning(this->Name.c_str());
 	}
+
 
 	bool IsConnectedToTCPTable() const {
 		PMIB_TCPTABLE2 TcpTable = nullptr;
@@ -844,10 +1423,82 @@ public:
 					return true;
 				}
 			}
-		} 
+		}
 		delete[] TcpTable;
 		return false;
 	}
+
+
+	std::vector<DWORD> GetThreadList(DWORD ProcessId) {
+		std::vector<DWORD> Threads = { 0 };
+		HANDLE Snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, ProcessId);
+		THREADENTRY32 Thread{ sizeof(THREADENTRY32) };
+
+		if (Thread32First(Snapshot, &Thread)) {
+			do {
+				if (Thread.dwSize >= FIELD_OFFSET(THREADENTRY32, th32OwnerProcessID) + sizeof(Thread.th32OwnerProcessID)) {
+					if (Thread.th32OwnerProcessID == ProcessId) {
+						Threads.push_back(Thread.th32ThreadID);
+					}
+				} Thread.dwSize = sizeof(Thread);
+			} while (Thread32Next(Snapshot, &Thread));
+		} return Threads;
+	}
+
+
+	DWORD GetMainThreadId() {
+		HANDLE Snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, this->ProcessID);
+		THREADENTRY32 Thread{ sizeof(THREADENTRY32) };
+
+		if (Thread32First(Snapshot, &Thread)) {
+			do {
+				if (Thread.dwSize >= FIELD_OFFSET(THREADENTRY32, th32OwnerProcessID) + sizeof(Thread.th32OwnerProcessID)) {
+					if (Thread.th32OwnerProcessID == this->ProcessID) {
+						CloseHandle(Snapshot);
+						return Thread.th32ThreadID;
+					}
+				} Thread.dwSize = sizeof(Thread);
+			} while (Thread32Next(Snapshot, &Thread));
+		}
+
+		CloseHandle(Snapshot);
+		return NULL;
+	}
+
+
+	HANDLE GetMainThread() {
+		return OpenThread(THREAD_ALL_ACCESS, false, GetMainThreadId());
+	}
+
+
+	DWORD64 GetThreadStack() {
+		THREAD_BASIC_INFORMATION ThreadInfo = { 0 };
+		MODULEINFO Kernel32Info = { 0 };
+		DWORD SizeRequired = NULL;
+		DWORD64 StackTop = NULL;
+		DWORD64 ThreadStack = NULL;
+
+		auto MainThread = GetMainThread();
+		auto Status = NtQueryInformationThread(MainThread, 0, &ThreadInfo, sizeof(ThreadInfo), &SizeRequired);
+
+		GetModuleInformation(this->Handle, GetModuleHandle(L"kernel32.dll"), &Kernel32Info, sizeof(Kernel32Info));
+		StackTop = Read<DWORD64>(reinterpret_cast<DWORD64>(ThreadInfo.TebBaseAddress) + 0x8, sizeof(DWORD64));
+		CloseHandle(MainThread);
+
+		if (StackTop) {
+			DWORD64* Buffer = new DWORD64[4096];
+
+			if (ReadProcessMemory(this->Handle, reinterpret_cast<PVOID>(StackTop - 4096), Buffer, 4096, NULL)) {
+				for (auto i = 4096 / 8 - 1; i >= 0; --i) {
+					if (Buffer[i] >= (DWORD64)Kernel32Info.lpBaseOfDll && Buffer[i] <= (DWORD64)Kernel32Info.lpBaseOfDll + Kernel32Info.SizeOfImage) {
+						ThreadStack = StackTop - 4096 + i * 8ull;
+						break;
+					}
+				}
+			} delete[] Buffer;
+		} return ThreadStack;
+	}
+
 
 	~Process() {
 		CloseHandle(this->Handle);
@@ -855,190 +1506,275 @@ public:
 };
 
 
-typedef struct _PROCESS_DATA {
-
-	const wchar_t*	Name;
-	DWORD			ProcessID;
-	PVOID			Address;
-	PVOID			BaseAddress;
-	DWORD			ModuleSize;
-	PVOID			Data;
-	SIZE_T			Size;
-	SIZE_T			Bytes;
-	BOOLEAN			ReadOperation;
-
-}PROCESS_DATA, * PPROCESS_DATA;
+class SliderObject;
+typedef void(*SliderCallback)(PVOID);
+std::unique_ptr<SliderObject> gSliderObject{ nullptr };
+WNDPROC gSliderObjectProcedure{ nullptr };
+LRESULT CALLBACK SliderObjectProcedure(HWND hWindow, UINT Message, WPARAM WP, LPARAM LP);
 
 
-typedef struct _HANDLE_ELEVATION {
-
-	DWORD			ProcessID;
-	ACCESS_MASK		AccessMask;
-	HANDLE			Handle;
-	PHANDLE			pHandle;
-
-}HANDLE_ELEVATION, * PHANDLE_ELEVATION;
-
-
-#define IO_PID CTL_CODE(FILE_DEVICE_UNKNOWN, 0x02C0, METHOD_BUFFERED, FILE_ANY_ACCESS)
-#define IO_BASE CTL_CODE(FILE_DEVICE_UNKNOWN, 0x02C1, METHOD_BUFFERED, FILE_ANY_ACCESS)
-#define IO_COPY CTL_CODE(FILE_DEVICE_UNKNOWN, 0x02C2, METHOD_BUFFERED, FILE_ANY_ACCESS)
-#define IO_INIT CTL_CODE(FILE_DEVICE_UNKNOWN, 0x02C3, METHOD_BUFFERED, FILE_ANY_ACCESS)
-#define IO_ALLOC CTL_CODE(FILE_DEVICE_UNKNOWN, 0x02C4, METHOD_BUFFERED, FILE_ANY_ACCESS)
-#define IO_PROTECT CTL_CODE(FILE_DEVICE_UNKNOWN, 0x02C5, METHOD_BUFFERED, FILE_ANY_ACCESS)
-#define IO_FREE CTL_CODE(FILE_DEVICE_UNKNOWN, 0x02C6, METHOD_BUFFERED, FILE_ANY_ACCESS)
-#define IO_OPEN CTL_CODE(FILE_DEVICE_UNKNOWN, 0x02C7, METHOD_BUFFERED, FILE_ANY_ACCESS)
-#define IO_ELEVATE CTL_CODE(FILE_DEVICE_UNKNOWN, 0x02C8, METHOD_BUFFERED, FILE_ANY_ACCESS)
-
-
-class KernelProcess {
+class SliderObject {
 public:
 
-	HANDLE hDriver = { 0 };
-	std::wstring Name = L"";
-	DWORD ProcessID = 0;
-	DWORD64 BaseAddress = 0;
-	DWORD Size = 0;
+	SliderCallback OnValueChanged{ nullptr };
+	SliderCallback OnExit{ nullptr };
+	SliderCallback OnTick{ nullptr };
 
-	KernelProcess(std::wstring Name) {
-		this->hDriver = CreateFileW(L"\\\\.\\zwpsnt", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, 0, 0);
-		this->Name = Name;
+	HWND Parent{ nullptr };
+	HWND Display{ nullptr };
+	HWND Slider{ nullptr };
 
-		PROCESS_DATA Data = { this->Name.c_str(), 0ul, nullptr, nullptr, 0ul, nullptr, 0ul, 0ul, 0 };
-		ControlDriver(IO_INIT, &Data, sizeof(Data), &Data, sizeof(Data));
+	int Value{ 0 };
+	int MinimumValue{ 0 };
+	int MaximumValue{ 0 };
+	int DefaultValue{ 0 };
+	LPCSTR WindowName{ nullptr };
+	DWORD SliderStyle{ 0 };
+	COLORREF BkgColor{ 0 };
 
-		this->ProcessID = Data.ProcessID;
-		this->BaseAddress = reinterpret_cast<DWORD64>(Data.BaseAddress);
-		this->Size = Data.ModuleSize;
-	}
 
-	bool IsValid() const {
-		if (this->Name.c_str() != nullptr && this->ProcessID && this->BaseAddress && this->Size) {
-			return true;
-		} return false;
-	}
-
-	void Print() const {
-		std::wcout << L"Name: " << this->Name << "\n";
-		std::cout << "ProcessID: " << std::dec << static_cast<int>(this->ProcessID) << "\n";
-		std::cout << "Base Address: " << std::uppercase << std::hex << this->BaseAddress << "\n";
-		std::cout << "Size: " << std::uppercase << std::hex << this->Size << "\n";
-	}
-
-	DWORD GetProcessID() {
-		PROCESS_DATA Data = { this->Name.c_str(), 0ul, nullptr, nullptr, 0ul, nullptr, 0ul, 0ul, 0 };
-		ControlDriver(IO_PID, &Data, sizeof(Data), &Data, sizeof(Data));
-
-		return Data.ProcessID;
-	}
-
-	template <typename dynamic>
-	dynamic Read(DWORD64 Address, SIZE_T Size) const {
-		PROCESS_DATA Data = { 0 };
-		dynamic v = {};
-
-		Data.ProcessID = this->ProcessID;
-		Data.Address = reinterpret_cast<PVOID>(Address);
-		Data.Data = &v;
-		Data.Size = Size;
-		Data.ReadOperation = true;
-
-		ControlDriver(IO_COPY, &Data, sizeof(Data), &Data, sizeof(Data));
-
-		return *reinterpret_cast<dynamic*>(&v);
-	}
-
-	template <typename dynamic>
-	bool Write(DWORD64 Address, dynamic Value, SIZE_T Size) const {
-		PROCESS_DATA Data = { 0 };
-
-		Data.ProcessID = this->ProcessID;
-		Data.Address = reinterpret_cast<PVOID>(Address);
-		Data.Data = &Value;
-		Data.Size = Size;
-		Data.ReadOperation = false;
-
-		ControlDriver(IO_COPY, &Data, sizeof(Data), &Data, sizeof(Data));
+	template <typename T = SliderCallback>
+	SliderObject Init(
+		T OnValueChanged,
+		T OnExit,
+		T OnTick,
+		std::string_view BkgColor = "Navy",
+		int MinimumValue = 1,
+		int MaximumValue = 100,
+		int DefaultValue = 100,
+		LPCSTR WindowName = "", 
+		DWORD SliderStyle = WS_CHILD | TBS_HORZ | WS_VISIBLE | TBS_TOOLTIPS,
+		DWORD ParentStyle = WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU, 
+		int X = -1,
+		int Y = -1,
+		int Width = 300,
+		int Height = 40
+	) 
+	{
+		this->OnValueChanged = reinterpret_cast<SliderCallback>(OnValueChanged);
+		this->OnExit = reinterpret_cast<SliderCallback>(OnExit);
+		this->OnTick = reinterpret_cast<SliderCallback>(OnTick);
+		this->BkgColor = StringToColor(BkgColor.data());
+		this->Value = DefaultValue;
+		this->MinimumValue = MinimumValue;
+		this->MaximumValue = MaximumValue;
+		this->DefaultValue = DefaultValue;
+		this->WindowName = WindowName;
+		this->SliderStyle = SliderStyle;
 		
-		return (Data.Bytes == Data.Size) ? true : false;
+		this->Parent = CreateWindowExA(0, (LPCSTR)WC_DIALOG, WindowName, ParentStyle, 0, 0, 0, 0, nullptr, nullptr, nullptr, nullptr);
+		this->Slider = CreateWindowExW(0, TRACKBAR_CLASSW, nullptr, SliderStyle, X, Y, Width, Height, this->Parent, nullptr, nullptr, nullptr);
+
+		gSliderObject = std::make_unique<SliderObject>(*this);
+		gSliderObjectProcedure = (WNDPROC)SetWindowLongPtrW(gSliderObject->Parent, GWLP_WNDPROC, (LONG_PTR)SliderObjectProcedure);
+	
+		SendMessageW(gSliderObject->Slider, TBM_SETRANGEMIN, gSliderObject->MinimumValue, gSliderObject->MinimumValue);
+		SendMessageW(gSliderObject->Slider, TBM_SETRANGEMAX, gSliderObject->MinimumValue, gSliderObject->MaximumValue);
+		SendMessageW(gSliderObject->Slider, TBM_SETPOS, 0, gSliderObject->DefaultValue);
+
+		SetWindowPos(gSliderObject->Parent, HWND_TOP, 0, 0, 312, 60, SWP_SHOWWINDOW);
+		ShowWindow(gSliderObject->Parent, SW_SHOW);
+
+		MSG Message = { 0 };
+
+		do {
+			DispatchMessageW(&Message);
+			this->OnTick(this);
+		} while (GetMessageW(&Message, nullptr, 0, 0));
 	}
 
-	DWORD64 Scan(DWORD64 Start, DWORD64 Size, const char* Signature, const char* Mask) {
-		PROCESS_DATA Data = { 0 };
-		auto Buffer = AllocateMemory(Size);
-
-		Data.ProcessID = this->ProcessID;
-		Data.Address = reinterpret_cast<PVOID>(Start);
-		Data.Size = Size;
-		Data.Data = Buffer;
-		Data.ReadOperation = TRUE;
-
-		ControlDriver(IO_COPY, &Data, sizeof(Data), &Data, sizeof(Data));
-
-		for (DWORD64 i = 0; i < Size; i++) {
-
-			if (CompareData(const_cast<BYTE*>(static_cast<BYTE*>(Buffer) + i), reinterpret_cast<const BYTE*>(Signature), Mask)) {
-				FreeMemory(Buffer);
-				return Start + i;
-			}
-		}
-
-		FreeMemory(Buffer);
-		return NULL;
+	void SetWindowName(std::string_view Name) {
+		SetWindowTextA(this->Parent, Name.data());
+		this->WindowName = Name.data();
 	}
 
-	DWORD64 Scan(const char* Signature, const char* Mask) {
-		return Scan(this->BaseAddress, this->Size, Signature, Mask);
-	}
-
-	PVOID AllocateVirtualMemory(DWORD64 Address, SIZE_T Size) {
-		PROCESS_DATA Data = { 0 };
-
-		Data.ProcessID = this->ProcessID;
-		Data.Address = reinterpret_cast<PVOID>(Address);
-		Data.Size = Size;
-
-		ControlDriver(IO_ALLOC, &Data, sizeof(Data), &Data, sizeof(Data));
-		
-		return Data.Address;
-	}
-
-	void FreeVirtualMemory(DWORD64 Address) {
-		PROCESS_DATA Data = { 0 };
-
-		Data.ProcessID = this->ProcessID;
-		Data.Address = reinterpret_cast<PVOID>(Address);
-
-		ControlDriver(IO_FREE, &Data, sizeof(Data), &Data, sizeof(Data));
-	}
-
-	void ProtectVirtualMemory(DWORD64 Address, SIZE_T Size, DWORD Protection) {
-		PROCESS_DATA Data = { 0 };
-
-		Data.ProcessID = this->ProcessID;
-		Data.Address = reinterpret_cast<PVOID>(Address);
-		Data.Size = Size;
-		Data.Bytes = Protection;
-
-		ControlDriver(IO_PROTECT, &Data, sizeof(Data), &Data, sizeof(Data));
-	}
-
-	HANDLE ElevateHandle() {
-		HANDLE hProcess = INVALID_HANDLE_VALUE;
-		HANDLE_ELEVATION Data = { this->ProcessID, PROCESS_QUERY_LIMITED_INFORMATION, nullptr, &hProcess };
-		ControlDriver(IO_OPEN, &Data, sizeof(Data), &Data, sizeof(Data));
-		Data = { GetCurrentProcessId(), PROCESS_ALL_ACCESS, hProcess };
-		ControlDriver(IO_ELEVATE, &Data, sizeof(Data), &Data, sizeof(Data));
-
-		return hProcess;
-	}
-
-	BOOLEAN ControlDriver(DWORD IoCode, PVOID InputData, SIZE_T InputSize, PVOID OutputData, SIZE_T OutputSize) {
-		DWORD Bytes = 0;
-		return DeviceIoControl(this->hDriver, IoCode, InputData, InputSize, OutputData, OutputSize, &Bytes, NULL);
-	}
-
-	~KernelProcess() {
-		CloseHandle(this->hDriver);
+	template <typename T>
+	T GetValue() {
+		return reinterpret_cast<T>(this->Value);
 	}
 };
+
+
+LRESULT CALLBACK SliderObjectProcedure(HWND hWindow, UINT Message, WPARAM WP, LPARAM LP) {
+	switch (Message) {
+		case WM_HSCROLL: {
+			if (reinterpret_cast<HWND>(LP) == gSliderObject->Slider) {
+				SendMessageW(
+					gSliderObject->Display, 
+					WM_SETTEXT, 
+					NULL, 
+					(LPARAM)std::to_wstring(
+						gSliderObject->Value = SendMessage(
+							gSliderObject->Slider, 
+							TBM_GETPOS, 
+							0, 
+							0
+						)).c_str());
+
+				gSliderObject->OnValueChanged(gSliderObject.get());
+			}
+		} break;
+
+		case WM_CLOSE: {
+			gSliderObject->OnExit(gSliderObject.get());
+			PostQuitMessage(0);
+		} break;
+
+		case WM_CTLCOLORSTATIC: {
+			if (RGB(255, 255, 255) == gSliderObject->BkgColor) {
+				SetTextColor((HDC)WP, RGB(0, 0, 0));
+			} else {
+				SetTextColor((HDC)WP, RGB(255, 255, 255));
+			}
+			SetBkColor((HDC)WP, gSliderObject->BkgColor);
+			return (BOOL)CreateSolidBrush(gSliderObject->BkgColor);
+		} break;
+
+		case WM_CTLCOLORDLG: {
+			if (RGB(255, 255, 255) == gSliderObject->BkgColor) {
+				SetTextColor((HDC)WP, RGB(0, 0, 0));
+			} else {
+				SetTextColor((HDC)WP, RGB(255, 255, 255));
+			}
+			SetBkColor((HDC)WP, gSliderObject->BkgColor);
+			return (BOOL)CreateSolidBrush(gSliderObject->BkgColor);
+		} break;
+	}
+	
+	return CallWindowProcW(gSliderObjectProcedure, hWindow, Message, WP, LP);
+}
+
+
+
+
+
+
+VOID InitImports() {
+	pNtQueryVirtualMemory = GetFunctionPointer<tNtQueryVirtualMemory>("ntdll.dll", "NtQueryVirtualMemory");
+	pNtQuerySystemInformation = GetFunctionPointer<tNtQuerySystemInformation>("ntdll.dll", "NtQuerySystemInformation");
+	pNtReadVirtualMemory = GetFunctionPointer<tNtReadVirtualMemory>("ntdll.dll", "NtReadVirtualMemory");
+	pNtWriteVirtualMemory = GetFunctionPointer<tNtWriteVirtualMemory>("ntdll.dll", "NtWriteVirtualMemory");
+	pNtQueryInformationProcess = GetFunctionPointer<tNtQueryInformationProcess>("ntdll.dll", "NtQueryInformationProcess");
+	pNtQueryInformationThread = GetFunctionPointer<tNtQueryInformationThread>("ntdll.dll", "NtQueryInformationThread");
+	pNtQueryTimerResolution = GetFunctionPointer<tNtQueryTimerResolution>("ntdll.dll", "NtQueryTimerResolution");
+	pNtSuspendProcess = GetFunctionPointer<tNtSuspendResumeProcess>("ntdll.dll", "NtSuspendProcess");
+	pNtResumeProcess = GetFunctionPointer<tNtSuspendResumeProcess>("ntdll.dll", "NtResumeProcess");
+	pNtGetContextThread = GetFunctionPointer<tNtGetSetContextThread>("ntdll.dll", "NtGetContextThread");
+	pNtSetContextThread = GetFunctionPointer<tNtGetSetContextThread>("ntdll.dll", "NtSetContextThread");
+	pNtQueryObject = GetFunctionPointer	<tNtQueryObject>("ntdll.dll", "NtQueryObject");
+	pRtlCompareUnicodeString = GetFunctionPointer<tRtlCompareUnicodeString>("ntdll.dll", "RtlCompareUnicodeString");
+	pRtlGetVersion = GetFunctionPointer<tRtlGetVersion>("ntdll.dll", "RtlGetVersion");
+	pZwLoadDriver = GetFunctionPointer<tZwLoadDriver>("ntdll.dll", "ZwLoadDriver");
+}
+
+
+NTSTATUS NtQueryVirtualMemory(HANDLE hProcess, PVOID BaseAddress, INT MemoryInformationClass, PVOID MemoryInformation, SIZE_T MemoryInformationLength, PSIZE_T ReturnLength) {
+	if (pNtQueryVirtualMemory == nullptr) {
+		pNtQueryVirtualMemory = GetFunctionPointer<tNtQueryVirtualMemory>("ntdll.dll", "NtQueryVirtualMemory");
+	} return pNtQueryVirtualMemory(hProcess, BaseAddress, MemoryInformationClass, MemoryInformation, MemoryInformationLength, ReturnLength);
+}
+
+
+NTSTATUS NtQuerySystemInformation(DWORD SystemInformationClass, PVOID SystemInformation, DWORD SystemInformationLength, PDWORD ReturnLength) {
+	if (pNtQuerySystemInformation == nullptr) {
+		pNtQuerySystemInformation = GetFunctionPointer<tNtQuerySystemInformation>("ntdll.dll", "NtQuerySystemInformation");
+	} return pNtQuerySystemInformation(SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength);
+}
+
+
+NTSTATUS NtReadVirtualMemory(HANDLE hProcess, PVOID Address, PVOID Buffer, DWORD Size, PDWORD BytesRead) {
+	if (pNtReadVirtualMemory == nullptr) {
+		pNtReadVirtualMemory = GetFunctionPointer<tNtReadVirtualMemory>("ntdll.dll", "NtReadVirtualMemory");
+	} return pNtReadVirtualMemory(hProcess, Address, Buffer, Size, BytesRead);
+}
+
+
+NTSTATUS NtWriteVirtualMemory(HANDLE hProcess, PVOID Address, PVOID Buffer, DWORD Size, PDWORD BytesWritten) {
+	if (pNtWriteVirtualMemory == nullptr) {
+		pNtWriteVirtualMemory = GetFunctionPointer<tNtWriteVirtualMemory>("ntdll.dll", "NtWriteVirtualMemory");
+	} return pNtWriteVirtualMemory(hProcess, Address, Buffer, Size, BytesWritten);
+}
+
+
+NTSTATUS NtQueryInformationProcess(HANDLE hProcess, PROCESS_INFORMATION_CLASS ProcessInformationClass, PVOID ProcessInformation, ULONG ProcessInformationLength, PULONG ReturnLength) {
+	if (pNtQueryInformationProcess == nullptr) {
+		pNtQueryInformationProcess = GetFunctionPointer<tNtQueryInformationProcess>("ntdll.dll", "NtQueryInformationProcess");
+	} return pNtQueryInformationProcess(hProcess, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
+}
+
+
+NTSTATUS NtQueryInformationThread(HANDLE ThreadHandle, INT ThreadInformationClass, PVOID ThreadInformation, ULONG ThreadInformationLength, PULONG ReturnLength OPTIONAL) {
+	if (pNtQueryInformationThread == nullptr) {
+		pNtQueryInformationThread = GetFunctionPointer<tNtQueryInformationThread>("ntdll.dll", "NtQueryInformationThread");
+	} return pNtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength, ReturnLength);
+}
+
+
+NTSTATUS NtQueryTimerResolution(PULONG MinimumResolution, PULONG MaximumResolution, PULONG CurrentResolution) {
+	if (pNtQueryTimerResolution == nullptr) {
+		pNtQueryTimerResolution = GetFunctionPointer<tNtQueryTimerResolution>("ntdll.dll", "NtQueryTimerResolution");
+	} return pNtQueryTimerResolution(MinimumResolution, MaximumResolution, CurrentResolution);
+}
+
+
+NTSTATUS NtSuspendProcess(HANDLE hProcess) {
+	if (pNtSuspendProcess == nullptr) {
+		pNtSuspendProcess = GetFunctionPointer<tNtSuspendResumeProcess>("ntdll.dll", "NtSuspendProcess");
+	} return pNtSuspendProcess(hProcess);
+}
+
+
+NTSTATUS NtResumeProcess(HANDLE hProcess) {
+	if (pNtResumeProcess == nullptr) {
+		pNtResumeProcess = GetFunctionPointer<tNtSuspendResumeProcess>("ntdll.dll", "NtResumeProcess");
+	} return pNtResumeProcess(hProcess);
+}
+
+
+NTSTATUS NtGetContextThread(HANDLE hThread, PCONTEXT ThreadContext) {
+	if (pNtGetContextThread == nullptr) {
+		pNtGetContextThread = GetFunctionPointer<tNtGetSetContextThread>("ntdll.dll", "NtGetContextThread");
+	} return pNtGetContextThread(hThread, ThreadContext);
+}
+
+
+NTSTATUS NtSetContextThread(HANDLE hThread, PCONTEXT ThreadContext) {
+	if (pNtSetContextThread == nullptr) {
+		pNtSetContextThread = GetFunctionPointer<tNtGetSetContextThread>("ntdll.dll", "NtSetContextThread");
+	} return pNtSetContextThread(hThread, ThreadContext);
+}
+
+
+NTSTATUS NtQueryObject(HANDLE Object, OBJECT_INFORMATION_CLASS ObjectInformationClass, PVOID ObjectInformation, ULONG ObjectInformationLength, PULONG ReturnLength) {
+	if (pNtQueryObject == nullptr) {
+		pNtQueryObject = GetFunctionPointer<tNtQueryObject>("ntdll.dll", "NtQueryObject");
+	} return pNtQueryObject(Object, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
+}
+
+
+NTSTATUS RtlCompareUnicodeString(PUNICODE_STRING String1, PUNICODE_STRING String2, BOOLEAN CaseInSesitive) {
+	if (pRtlCompareUnicodeString == nullptr) {
+		pRtlCompareUnicodeString = GetFunctionPointer<tRtlCompareUnicodeString>("ntdll.dll", "RtlCompareUnicodeString");
+	} return pRtlCompareUnicodeString(String1, String2, CaseInSesitive);
+}
+
+
+NTSTATUS RtlGetVersion(PRTL_OSVERSIONINFOW pVersionInfo) {
+	if (pRtlGetVersion == nullptr) {
+		pRtlGetVersion = GetFunctionPointer<tRtlGetVersion>("ntdll.dll", "RtlGetVersion");
+	} return pRtlGetVersion(pVersionInfo);
+}
+
+
+NTSTATUS ZwLoadDriver(PUNICODE_STRING DriverServiceName) {
+	if (pZwLoadDriver == nullptr) {
+		pZwLoadDriver = GetFunctionPointer<tZwLoadDriver>("ntdll.dll", "ZwLoadDriver");
+	} return pZwLoadDriver(DriverServiceName);
+}
+
+
+BOOL IsEqualUnicodeString(PUNICODE_STRING String1, PUNICODE_STRING String2, BOOL CaseInSesitive) {
+	if (!RtlCompareUnicodeString(String1, String2, CaseInSesitive)) {
+		return TRUE;
+	} return FALSE;
+}
