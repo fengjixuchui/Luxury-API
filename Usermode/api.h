@@ -503,7 +503,7 @@ BOOL IsProcessRunning(const wchar_t* ProcessName) {
 
 STORAGE_DEVICE_DESCRIPTOR* QueryDiskInformation() {
 	DWORD IoRetBytes{ NULL };
-    STORAGE_DESCRIPTOR_HEADER Header{ NULL };
+    	STORAGE_DESCRIPTOR_HEADER Header{ NULL };
 	STORAGE_PROPERTY_QUERY QueryInfo{ StorageDeviceProperty, PropertyStandardQuery };
 
 	HANDLE hDisk{ CreateFileW(L"\\\\.\\PhysicalDrive0", 0, 0, nullptr, OPEN_EXISTING, 0, nullptr) };
@@ -618,10 +618,10 @@ DWORD64 ResolveRelativeAddress(HANDLE hProcess, DWORD64 RIP, DWORD InstructionLe
 	DWORD RelativeOffset{ 0 };
 
 	ReadProcessMemory(hProcess, 
-					  reinterpret_cast<PVOID>(RIP + InstructionLength - 4), 
-					  &RelativeOffset, 
-					  sizeof(DWORD), 
-					  nullptr);
+			  reinterpret_cast<PVOID>(RIP + InstructionLength - 4), 
+			  &RelativeOffset, 
+			  sizeof(DWORD), 
+			  nullptr);
 
 	return RIP + InstructionLength + RelativeOffset;
 }
