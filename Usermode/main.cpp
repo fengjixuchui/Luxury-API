@@ -1,170 +1,161 @@
-//#include "LuxuryAPI.h"
 #include "api.h"
 
-int main()
-{	
-	Process Notepad(L"notepad.exe");
 
-	if (Notepad.IsValid()) {
-		std::cout << "Notepad Is Valid!\n\n";
-	}
-	else {
-		std::cout << "Notepad Is Not Valid!\n\n";
-	} getchar();
+#define CurrentProcess() std::make_unique<CurrentProcInfo>(CurrentProcInfo())
 
-	Notepad.Print();
-	getchar();
 
-	auto r = Notepad.Read<int>(0x21945BE0B68, sizeof(int));
-	std::cout << std::dec << r;
-	getchar();
+typedef struct {
+     LIST_ENTRY InLoadOrderLinks;
+     LIST_ENTRY InMemoryOrderLinks;
+     LIST_ENTRY InInitializationOrderLinks;
+     PVOID DllBase;
+     PVOID EntryPoint;
+     ULONG SizeOfImage;
+     UNICODE_STRING FullDllName;
+     UNICODE_STRING BaseDllName;
+     ULONG Flags;
+     WORD LoadCount;
+     WORD TlsIndex;
+     union
+     {
+          LIST_ENTRY HashLinks;
+          struct
+          {
+               PVOID SectionPointer;
+               ULONG CheckSum;
+          };
+     };
+     union
+     {
+          ULONG TimeDateStamp;
+          PVOID LoadedImports;
+     };
+     _ACTIVATION_CONTEXT * EntryPointActivationContext;
+     PVOID PatchInformation;
+     LIST_ENTRY ForwarderLinks;
+     LIST_ENTRY ServiceTagLinks;
+     LIST_ENTRY StaticLinks;
+} LoaderDataTableEntry;
 
-	Notepad.Write<int>(0x21945BE0B68, 69, sizeof(int));
-	getchar();
 
-	auto b = Notepad.IsDebuggerPresent();
-
-	std::cout << (b == true ? "Debugger Is Present!" : "Debugger Is Not Present") << "\n";
-	getchar();
-
-	auto Addr = Notepad.Scan(
-		"\x48\x76\xD8\x45\x19\x02\x00\x00", 
-		"xxxxxxxx"
-	);
-
-	PrintHexS(Addr);
-	getchar();
-
-	std::cout << (Notepad.IsRunning() == true ? "Notepad Is Running!\n" : "Notepad Is Not Running!\n");
-	getchar();
-
-	std::cout << (Notepad.IsConnectedToTCPTable() == true ? "Notepad Is Connected!\n" : "Notepad Is Not Connected!\n");
-	getchar();
-
-	Process PerfWatson(L"PerfWatson2.exe");
-
-	if (PerfWatson.IsValid()) {
-		std::cout << "PerfWatson Is Valid!\n\n";
-	}
-	else {
-		std::cout << "PerfWatson Is Not Valid!\n\n";
-	} getchar();
-
-	PerfWatson.Print();
-	getchar();
-
-	std::cout << (PerfWatson.IsRunning() == true ? "PerfWatson Is Running!\n" : "ProcessHacker Is Not Running!\n");
-	getchar();
-
-	std::cout << (PerfWatson.IsConnectedToTCPTable() == true ? "PerfWatson Is Connected!\n" : "PerfWatson Is Not Connected!\n");
-	getchar();
-
-	auto Chrome = KernelProcess(L"chrome.exe");
-
-	HANDLE Handle = Chrome.ElevateHandle();
-	return 0;
+PEB* GetPeb() {
+	return reinterpret_cast<PEB*>(__readgsqword(0x60));
 }
 
 
-/*VOID Test()
-{
-	INT Value = 10;
+template <typename T>
+void EnumModuleList(T Callback) {
+    auto Peb{ GetPeb() };
 
-	Luxury::Launch("C:\\Windows\\notepad.exe");
-	Sleep(1000);
+    auto ListHead{ Peb->Ldr->InMemoryOrderModuleList.Flink };
+    auto Next{ ListHead };
 
-	DWORD PID = Luxury::GetProcessID(L"notepad.exe"); // get process id
-	std::cout << "Notepad Process ID: " << PID << "\n\n";
+    do {
 
+        auto Entry{ reinterpret_cast<LoaderDataTableEntry*>(CONTAINING_RECORD(ListHead, LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks)) };
 
-	HANDLE hNotepad = Luxury::GetHandle(L"notepad.exe"); // get handle (ALL_ACCESS)
-	if (hNotepad != INVALID_HANDLE_VALUE)
-		std::cout << "Handle opened!\n\n";
+        if (!Entry->DllBase) {
+            break;
+        }
 
+        wchar_t CurName[256]{ 0 };
+        memcpy(CurName, Entry->BaseDllName.Buffer, Entry->BaseDllName.Length);
 
-	ULONGLONG Base = Luxury::GetBaseAddress(L"notepad.exe", hNotepad); // get base address
-	std::cout << "Notepad Base Address: ";
-	Luxury::PrintHex(Base);
+        if (Callback(Entry, CurName))
+            return;
 
+        ListHead = Entry->InMemoryOrderLinks.Flink;
 
-	INT Buffer = Luxury::ReadMemory<INT>(hNotepad, Base + 0x2B1A0, sizeof(INT)); // read memory
-	std::cout << "\n\nRead Value: " << Buffer << "\n\n";
-
-	Luxury::WriteMemory(hNotepad, Base + 0x2B1A0, &Value, sizeof(INT)); // write memory
-	std::cout << "Memory Written!\n\n";
-
-
-	INT Buffer2 = Luxury::CopyProcessMemory<INT>(hNotepad, Base + 0x2B1A0, sizeof(INT), TRUE, NULL); // read memory 2
-	std::cout << "\n\nRead Value 2: " << Buffer2 << "\n\n";
-
-	Luxury::CopyProcessMemory<INT>(hNotepad, Base + 0x2B1A0, sizeof(INT), FALSE, 20); // write memory 2
-	std::cout << "Memory Written 2!\n\n";
+    } while (ListHead != Next);
+}
 
 
-	BOOL IsRunning = Luxury::IsProcessRunning(L"notepad.exe"); // check if process is running
+typedef struct CurrentProcInfo {
+public:
 
-	if (IsRunning)
-		std::cout << "Notepad is running!\n\n";
-	else
-		std::cout << "Notepad is not running!\n\n";
+    std::wstring Name;
+    DWORD64 Base;
+    DWORD Size;
+    PEB* Peb;
 
+    CurrentProcInfo() {
+        this->Name = PathFindFileNameW(Path.CurrentExecutableW().c_str());
+        this->Peb = GetPeb();
 
-	std::string RandomString = Luxury::GenerateRandomStringA(10, TRUE, RANDOM_MIXED); // generate a random string 10 chars long, with numbers, and with both capitalized and non-capitalized chars
-	std::cout << "Random String generated: " << RandomString << "\n\n";
+        auto Callback {
+            [this] ( LoaderDataTableEntry* Module, const wchar_t* ModuleName ) -> bool {
+                if (!wcscmp(this->Name.c_str(), ModuleName)) {
+                    this->Base = reinterpret_cast<DWORD64>(Module->DllBase);
+                    this->Size = Module->SizeOfImage;
+                    return true;
+                }
 
+                return false;
+            }
+        };
 
-	BOOL IsBeingDebugged = Luxury::BeingDebugged(FALSE, L"notepad.exe"); // check if remote process is being debugged
-
-	if (IsBeingDebugged)
-		std::cout << "Notepad is being debugged!\n\n";
-	else
-		std::cout << "Notepad is not being debugged!\n\n";
-
-
-	BOOL IsCurrentBeingDebugged = Luxury::BeingDebugged(TRUE, nullptr); // check if current process is being debugged
-
-	if (IsCurrentBeingDebugged)
-		std::cout << "The current process is being debugged!\n\n";
-	else
-		std::cout << "The current process is not being debugged!\n\n";
-
-
-	BOOL CheckFile = Luxury::DoesFileExist("C:\\Users\\xan\\Desktop\\Forcer.exe"); // check if file exists
-
-	if (CheckFile)
-		std::cout << "C:\\Users\\xan\\Desktop\\Forcer.exe exists!\n\n";
-	else
-		std::cout << "C:\\Users\\xan\\Desktop\\Forcer.exe does not exist!\n\n";
+        EnumModuleList(Callback);
+    }
+};
 
 
-	BOOL stob = Luxury::StringToBool("true"); // convert string to bool
-	if (stob)
-		std::cout << "stob is true!\n\n";
-	else
-		std::cout << "stob is false!\n\n";
+class MemoryHeuristics {
+
+public:
+
+	static BYTE* InvalidMemoryScan() {
+        bool bDetection{ false };
+
+        DWORD64 Address{ NULL };
+
+		auto Callback { 
+            [ &bDetection, Address ] ( LoaderDataTableEntry* Module, const wchar_t* ModuleName ) -> bool {
+                if ( Address >= reinterpret_cast <DWORD64> ( Module->DllBase ) 
+                    && Address <= reinterpret_cast <DWORD64> ( Module->DllBase ) + Module->SizeOfImage ) {
+                    return bDetection = true;
+                }
+
+                return bDetection = false;
+            }
+        };
+
+        SYSTEM_INFO SysInfo{ 0 };
+        GetSystemInfo(&SysInfo);
+
+        MEMORY_BASIC_INFORMATION Mbi{ 0 };
+
+        for (SIZE_T i = 0; i <= reinterpret_cast<DWORD64>(SysInfo.lpMaximumApplicationAddress); i += 0x8) {
+            if (NT_SUCCESS(NtQueryVirtualMemory(NtCurrentProcess(), reinterpret_cast<PVOID>(i), 0, &Mbi, sizeof(Mbi), nullptr))) {
+                if ((Mbi.Protect == PAGE_EXECUTE_READWRITE
+                    || Mbi.Protect == PAGE_EXECUTE_READ
+                    || Mbi.Protect == PAGE_EXECUTE_WRITECOPY) && Mbi.Type == MEM_MAPPED) {
+                    Address = i; 
+                    EnumModuleList(Callback);
+
+                    if (bDetection) {
+                        return reinterpret_cast<BYTE*>(i);
+                    }
+                }
+            }
+        }
+
+        return nullptr; 
+	}
+};
 
 
-	COLORREF Red = Luxury::StringToColor("red"); // convert string to colorref
-	if (Red == RGB(255, 0, 0))
-		std::cout << "Successfully converted string to color!\n\n";
-	else
-		std::cout << "Failed to convert string to color!\n\n";
-
-
-	UNICODE_STRING usString = Luxury::ReturnUnicodeString(L"My Unicode String"); // create unicode string
-	std::wcout << "Unicode String: " << usString.Buffer << "\n\n";
-
-	std::string NoWhitespaces = Luxury::RemoveWhitespaces("s t r i n g"); // remove whitespaces
-	std::cout << "Whitespaces removed from: " << NoWhitespaces << "\n\n";
-
-	Sleep(3000);
-
-	BOOL IsDead = Luxury::KillProcess(L"notepad.exe");
-
-	std::cout << "Random float: ";
-	Luxury::PrintFloat(69.69, 2);
-
-	std::cout << "\n\nTesting Complete";
-	Luxury::PrintPeriods(3, 500);
+void thrd() {
+     if (auto mem = MemoryHeuristics::InvalidMemoryScan()) {
+         MessageBoxA(nullptr, "FOUND", "INVALID MEM", MB_OK);
+        std::cout << "Invalid Memory at: 0x" << std::hex << std::uppercase << mem;
+    } else {
+         MessageBoxA(nullptr, "NONE FOUND", "NO INVALID MEM", MB_OK);
+        std::cout << "No Invalid Memory Detected!";
+    }
+}
+int main() {
+   
+    SpawnThread(thrd);
 	getchar();
-}*/
+    return 0;
+}
