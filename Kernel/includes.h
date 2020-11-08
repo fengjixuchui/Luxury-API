@@ -3,12 +3,6 @@
 #include <ntddk.h>
 #include <IntSafe.h>
 
-
-#define EX_ADDITIONAL_INFO_SIGNATURE (ULONG_PTR)(-2)
-#define ExpIsValidObjectEntry(Entry) \
-    ( (Entry != NULL) && (Entry->LowValue != 0) && (Entry->HighValue != EX_ADDITIONAL_INFO_SIGNATURE) )
-
-
 typedef struct _PROCESS_DATA {
 
 	const wchar_t*	Name;
@@ -123,7 +117,6 @@ typedef struct _SYSTEM_PROCESS_INFORMATION {
 
 } SYSTEM_PROCESS_INFORMATION, * PSYSTEM_PROCESS_INFORMATION;
 
-
 typedef struct _PEB_LDR_DATA {
 
 	ULONG Length;
@@ -176,87 +169,6 @@ typedef struct _PEB {
 
 } PEB, * PPEB;
 
-typedef union _EXHANDLE
-{
-	struct
-	{
-		int TagBits : 2;
-		int Index : 30;
-	} u;
-	void* GenericHandleOverlay;
-	ULONG_PTR Value;
-} EXHANDLE, * PEXHANDLE;
-
-typedef struct _HANDLE_TABLE_ENTRY {
-	union
-	{
-		ULONG_PTR VolatileLowValue;
-		ULONG_PTR LowValue;
-		struct _HANDLE_TABLE_ENTRY_INFO* InfoTable;
-		struct
-		{
-			ULONG_PTR Unlocked : 1;
-			ULONG_PTR RefCnt : 16;
-			ULONG_PTR Attributes : 3;
-			ULONG_PTR ObjectPointerBits : 44;
-		};
-	};
-	union
-	{
-		ULONG_PTR HighValue;
-		struct _HANDLE_TABLE_ENTRY* NextFreeHandleEntry;
-		union _EXHANDLE LeafHandleValue;
-		struct
-		{
-			ULONG GrantedAccessBits : 25;
-			ULONG NoRightsUpgrade : 1;
-			ULONG Spare : 6;
-		};
-	};
-
-	ULONG TypeInfo;
-
-} HANDLE_TABLE_ENTRY, * PHANDLE_TABLE_ENTRY;
-
-
-typedef struct _HANDLE_TABLE {
-
-	ULONG TableCode;
-	PEPROCESS QuotaProcess;
-	PVOID UniqueProcessId;
-	EX_PUSH_LOCK HandleLock;
-	LIST_ENTRY HandleTableList;
-	EX_PUSH_LOCK HandleContentionEvent;
-	PVOID DebugInfo;
-	LONG ExtraInfoPages;
-	ULONG Flags;
-	ULONG StrictFIFO : 1;
-	LONG FirstFreeHandle;
-	PVOID LastFreeHandleEntry;
-	LONG HandleCount;
-	ULONG NextHandleNeedingPool;
-
-} HANDLE_TABLE, * PHANDLE_TABLE;
-
-
-typedef BOOLEAN(*tEX_ENUMERATE_HANDLE_ROUTINE)(
-	IN PHANDLE_TABLE HandleTable,
-	IN PHANDLE_TABLE_ENTRY HandleTableEntry,
-	IN HANDLE Handle,
-	IN PVOID EnumParameter
-	);
-
-typedef BOOLEAN(*tExEnumHandleTable)(
-	IN PHANDLE_TABLE HandleTable,
-	IN tEX_ENUMERATE_HANDLE_ROUTINE EnumHandleProcedure,
-	IN PVOID EnumParameter,
-	OUT PHANDLE Handle
-	);
-
-
-HANDLE_ELEVATION GlobalHandleElevation = { 0 };
-HANDLE GlobalHandle = nullptr;
-
 extern "C" {
 	NTKERNELAPI 
 	NTSTATUS 
@@ -308,13 +220,5 @@ extern "C" {
 		PSIZE_T RegionSize, 
 		ULONG NewAccessProtection, 
 		PULONG OldAccessProtection
-	);
-
-	NTKERNELAPI
-	VOID
-	FASTCALL
-	ExfUnblockPushLock(
-		IN OUT PEX_PUSH_LOCK PushLock,
-		IN OUT PVOID WaitBlock
 	);
 }
