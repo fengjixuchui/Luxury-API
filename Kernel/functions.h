@@ -61,7 +61,14 @@ NTSTATUS AllocateVirtualMemory(PPROCESS_DATA Data) {
 	KAPC_STATE Apc = { 0 };
 
 	KeStackAttachProcess(eProcess, &Apc);
-	Status = ZwAllocateVirtualMemory(ZwCurrentProcess(), &Data->Address, NULL, &Data->Size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	
+	Status = ZwAllocateVirtualMemory(ZwCurrentProcess(), 
+					 &Data->Address, 
+					 NULL, 
+					 &Data->Size, 
+					 MEM_COMMIT | MEM_RESERVE, 
+					 PAGE_EXECUTE_READWRITE);
+	
 	KeUnstackDetachProcess(&Apc);
 
 	return Status;
@@ -75,7 +82,12 @@ NTSTATUS FreeVirtualMemory(PPROCESS_DATA Data) {
 	KAPC_STATE Apc = { 0 };
 	
 	KeStackAttachProcess(eProcess, &Apc);
-	Status = ZwFreeVirtualMemory(ZwCurrentProcess(), &Data->Address, &Size, MEM_RELEASE);
+	
+	Status = ZwFreeVirtualMemory(ZwCurrentProcess(), 
+				     &Data->Address, 
+				     &Size, 
+				     MEM_RELEASE);
+	
 	KeUnstackDetachProcess(&Apc);
 
 	return Status;
@@ -89,7 +101,13 @@ NTSTATUS ProtectVirtualMemory(PPROCESS_DATA Data) {
 	KAPC_STATE Apc = { 0 };
 
 	KeStackAttachProcess(eProcess, &Apc);
-	Status = ZwProtectVirtualMemory(ZwCurrentProcess(), &Data->Address, &Data->Size, Data->Bytes, &OldProtection);
+	
+	Status = ZwProtectVirtualMemory(ZwCurrentProcess(), 
+					&Data->Address,
+					&Data->Size, 
+					Data->Bytes, 
+					&OldProtection);
+	
 	KeUnstackDetachProcess(&Apc);
 
 	return Status;
