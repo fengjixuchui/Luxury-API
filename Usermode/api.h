@@ -37,282 +37,17 @@
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
+
 #define RANDOM_CAPS        0
 #define RANDOM_LOWERCASE   1
 #define RANDOM_MIXED       2
 
 
-#define NtCurrentProcess() (HANDLE(-1))
 
-
-#define space(x) for(int i = 0; i <= x; i++) {	\
+#define space(x) for(int i = 0; i <= x; i++) {				\
 					std::cout << std::endl;		\
 				}
 
-
-
-typedef enum _POOL_TYPE {
-
-	NonPagedPool,
-	NonPagedPoolExecute,
-	PagedPool,
-	NonPagedPoolMustSucceed,
-	DontUseThisType,
-	NonPagedPoolCacheAligned,
-	PagedPoolCacheAligned,
-	NonPagedPoolCacheAlignedMustS,
-	MaxPoolType,
-	NonPagedPoolBase,
-	NonPagedPoolBaseMustSucceed,
-	NonPagedPoolBaseCacheAligned,
-	NonPagedPoolBaseCacheAlignedMustS,
-	NonPagedPoolSession,
-	PagedPoolSession,
-	NonPagedPoolMustSucceedSession,
-	DontUseThisTypeSession,
-	NonPagedPoolCacheAlignedSession,
-	PagedPoolCacheAlignedSession,
-	NonPagedPoolCacheAlignedMustSSession,
-	NonPagedPoolNx,
-	NonPagedPoolNxCacheAligned,
-	NonPagedPoolSessionNx
-
-} POOL_TYPE;
-
-
-typedef struct _PROCESS_HANDLE_TABLE_ENTRY_INFO {
-
-	HANDLE HandleValue;
-	ULONG_PTR HandleCount;
-	ULONG_PTR PointerCount;
-	ULONG GrantedAccess;
-	ULONG ObjectTypeIndex;
-	ULONG HandleAttributes;
-	ULONG Reserved;
-
-} PROCESS_HANDLE_TABLE_ENTRY_INFO, * PPROCESS_HANDLE_TABLE_ENTRY_INFO;
-
-
-
-typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO {
-
-	USHORT UniqueProcessId;
-	USHORT CreatorBackTraceIndex;
-	UCHAR ObjectTypeIndex;
-	UCHAR HandleAttributes;
-	USHORT HandleValue;
-	PVOID Object;
-	ULONG GrantedAccess;
-
-}SYSTEM_HANDLE_TABLE_ENTRY_INFO, *PSYSTEM_HANDLE_TABLE_ENTRY_INFO;
-
-
-typedef struct _SYSTEM_HANDLE_INFORMATION {
-
-	DWORD NumberOfHandles;
-	SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[ANYSIZE_ARRAY];
-
-} SYSTEM_HANDLE_INFORMATION, * PSYSTEM_HANDLE_INFORMATION;
-
-
-
-typedef struct _THREAD_BASIC_INFORMATION {
-
-	NTSTATUS                ExitStatus;
-	PVOID                   TebBaseAddress;
-	CLIENT_ID               ClientId;
-	KAFFINITY               AffinityMask;
-	LONG					Priority;
-	LONG	                BasePriority;
-
-} THREAD_BASIC_INFORMATION, * PTHREAD_BASIC_INFORMATION;
-
-
-typedef struct _OBJECT_BASIC_INFORMATION {
-
-	ULONG                   Attributes;
-	ACCESS_MASK             GrantedAccess;
-	ULONG                   HandleCount;
-	ULONG                   ReferenceCount;
-	ULONG                   PagedPoolUsage;
-	ULONG                   NonPagedPoolUsage;
-	ULONG                   Reserved[3];
-	ULONG                   NameInformationLength;
-	ULONG                   TypeInformationLength;
-	ULONG                   SecurityDescriptorLength;
-	LARGE_INTEGER           CreationTime;
-
-} OBJECT_BASIC_INFORMATION, * POBJECT_BASIC_INFORMATION;
-
-
-typedef struct _OBJECT_NAME_INFORMATION {
-
-	UNICODE_STRING          Name;
-	WCHAR                   NameBuffer[0];
-
-} OBJECT_NAME_INFORMATION, * POBJECT_NAME_INFORMATION;
-
-
-typedef struct _OBJECT_DATA_INFORMATION {
-
-	BOOLEAN                 InheritHandle;
-	BOOLEAN                 ProtectFromClose;
-
-} OBJECT_DATA_INFORMATION, * POBJECT_DATA_INFORMATION;
-
-
-typedef struct _OBJECT_TYPE_INFORMATION {
-
-	UNICODE_STRING          TypeName;
-	ULONG                   TotalNumberOfHandles;
-	ULONG                   TotalNumberOfObjects;
-	WCHAR                   Unused1[8];
-	ULONG                   HighWaterNumberOfHandles;
-	ULONG                   HighWaterNumberOfObjects;
-	WCHAR                   Unused2[8];
-	ACCESS_MASK             InvalidAttributes;
-	GENERIC_MAPPING         GenericMapping;
-	ACCESS_MASK             ValidAttributes;
-	BOOLEAN                 SecurityRequired;
-	BOOLEAN                 MaintainHandleCount;
-	USHORT                  MaintainTypeList;
-	POOL_TYPE               PoolType;
-	ULONG                   DefaultPagedPoolCharge;
-	ULONG                   DefaultNonPagedPoolCharge;
-
-} OBJECT_TYPE_INFORMATION, * POBJECT_TYPE_INFORMATION;
-
-
-
-typedef NTSYSAPI NTSTATUS(NTAPI* tNtQueryVirtualMemory)(
-	HANDLE hProcess,
-	PVOID BaseAddress,
-	INT MemoryInformationClass,
-	PVOID MemoryInformation,
-	SIZE_T MemoryInformationLength,
-	PSIZE_T ReturnLength
-	);
-
-
-typedef NTSYSAPI NTSTATUS(NTAPI* tNtReadVirtualMemory)(
-	HANDLE hProcess,
-	PVOID BaseAddress,
-	PVOID Buffer,
-	ULONG NumberOfBytesToRead,
-	PULONG NumberOfBytesRead OPTIONAL
-	);
-
-
-typedef NTSYSAPI NTSTATUS(NTAPI* tNtWriteVirtualMemory)(
-	HANDLE hProcess,
-	PVOID BaseAddress,
-	PVOID Buffer,
-	ULONG NumberOfBytesToWrite,
-	PULONG NumberOfBytesWritten OPTIONAL
-	);
-
-
-typedef NTSTATUS(NTAPI* tNtQuerySystemInformation)(
-	DWORD SystemInformationClass,
-	PVOID SystemInformation,
-	ULONG SystemInformationLength,
-	PULONG ReturnLength
-	);
-
-
-typedef NTSTATUS (NTAPI* tNtQueryInformationProcess)(
-	IN HANDLE hProcess,
-	IN PROCESS_INFORMATION_CLASS ProcessInformationClass,
-	OUT PVOID ProcessInformation,
-	IN ULONG ProcessInformationLength,
-	OUT PULONG ReturnLength
-	);
-
-
-typedef NTSTATUS(NTAPI* tNtQueryInformationThread) (
-	IN HANDLE	ThreadHandle,
-	IN INT		ThreadInformationClass,
-	OUT PVOID	ThreadInformation,
-	IN ULONG	ThreadInformationLength,
-	OUT PULONG	ReturnLength OPTIONAL
-	);
-
-
-typedef NTSTATUS(NTAPI* tNtQueryTimerResolution) (
-	OUT PULONG MinimumResolution,
-	OUT PULONG MaximumResolution,
-	OUT PULONG CurrentResolution
-	);
-
-typedef NTSTATUS(NTAPI* tNtSuspendResumeProcess)(
-	IN HANDLE hProcess
-	);
-
-
-typedef NTSTATUS(NTAPI* tNtGetSetContextThread)(
-	HANDLE ThreadHandle,
-	PCONTEXT ThreadContext
-	);
-
-
-typedef NTSTATUS(NTAPI* tRtlCompareUnicodeString)(
-	_In_ PUNICODE_STRING String1,
-	_In_ PUNICODE_STRING String2,
-	_In_ BOOLEAN         CaseInSensitive
-	);
-
-
-typedef NTSTATUS(NTAPI* tRtlGetVersion)(
-	_Out_ PRTL_OSVERSIONINFOW lpVersionInformation
-	);
-
-
-typedef NTSTATUS(NTAPI* tZwLoadDriver)(
-	PUNICODE_STRING DriverServiceName
-	);
-
-
-typedef NTSTATUS(NTAPI* tNtQueryObject)(
-	HANDLE Object,
-	OBJECT_INFORMATION_CLASS ObjectInformationClass,
-	PVOID ObjectInformation,
-	ULONG ObjectInformationLength,
-	PULONG ReturnLength
-	);
-
-
-tNtQueryVirtualMemory pNtQueryVirtualMemory = nullptr;
-tNtQuerySystemInformation pNtQuerySystemInformation = nullptr;
-tNtReadVirtualMemory pNtReadVirtualMemory = nullptr;
-tNtWriteVirtualMemory pNtWriteVirtualMemory = nullptr;
-tNtQueryInformationProcess pNtQueryInformationProcess = nullptr;
-tNtQueryInformationThread pNtQueryInformationThread = nullptr;
-tNtQueryTimerResolution pNtQueryTimerResolution = nullptr;
-tNtSuspendResumeProcess pNtSuspendProcess = nullptr;
-tNtSuspendResumeProcess pNtResumeProcess = nullptr;
-tNtGetSetContextThread pNtGetContextThread = nullptr;
-tNtGetSetContextThread pNtSetContextThread = nullptr;
-tNtQueryObject pNtQueryObject = nullptr;
-tRtlCompareUnicodeString pRtlCompareUnicodeString = nullptr;
-tRtlGetVersion pRtlGetVersion = nullptr;
-tZwLoadDriver pZwLoadDriver = nullptr;
-
-
-NTSTATUS NtQueryVirtualMemory(HANDLE hProcess, PVOID BaseAddress, INT MemoryInformationClass, PVOID MemoryInformation, SIZE_T MemoryInformationLength, PSIZE_T ReturnLength);
-NTSTATUS NtQuerySystemInformation(DWORD SystemInformationClass, PVOID SystemInformation, DWORD SystemInformationLength, PDWORD ReturnLength);
-NTSTATUS NtReadVirtualMemory(HANDLE hProcess, PVOID Address, PVOID Buffer, DWORD Size, PDWORD BytesRead);
-NTSTATUS NtWriteVirtualMemory(HANDLE hProcess, PVOID Address, PVOID Buffer, DWORD Size, PDWORD BytesWritten);
-NTSTATUS NtQueryInformationProcess(HANDLE hProcess, PROCESS_INFORMATION_CLASS ProcessInformationClass, PVOID ProcessInformation, ULONG ProcessInformationLength, PULONG ReturnLength);
-NTSTATUS NtQueryInformationThread(HANDLE ThreadHandle, INT ThreadInformationClass, PVOID ThreadInformation, ULONG ThreadInformationLength, PULONG ReturnLength OPTIONAL);
-NTSTATUS NtQueryTimerResolution(PULONG MinimumResolution, PULONG MaximumResolution, PULONG CurrentResolution);
-NTSTATUS NtSuspendProcess(HANDLE hProcess);
-NTSTATUS NtResumeProcess(HANDLE hProcess);
-NTSTATUS NtGetContextThread(HANDLE hThread, PCONTEXT ThreadContext);
-NTSTATUS NtSetContextThread(HANDLE hThread, PCONTEXT ThreadContext);
-NTSTATUS NtQueryObject(HANDLE Object, OBJECT_INFORMATION_CLASS ObjectInformationClass, PVOID ObjectInformation, ULONG ObjectInformationLength, PULONG ReturnLength);
-NTSTATUS RtlCompareUnicodeString(PUNICODE_STRING String1, PUNICODE_STRING String2, BOOLEAN CaseInSesitive);
-NTSTATUS RtlGetVersion(PRTL_OSVERSIONINFOW pVersionInfo);
-NTSTATUS ZwLoadDriver(PUNICODE_STRING DriverServiceName);
 
 
 DWORD GetProcessID(const wchar_t* ProcessName) {
@@ -543,7 +278,18 @@ BOOL BeingDebugged(BOOL	CurrentProcess, const wchar_t* ProcessName OPTIONAL) {
 	return FALSE;
 }
 
-std::string RemoveWhitespaces(std::string);
+
+std::string RemoveWhitespaces(std::string SourceString) {
+	auto Count = 0;
+
+	for (auto i = 0; SourceString[i]; i++) {
+		if (SourceString[i] != ' ') {
+			SourceString[Count++] = SourceString[i];
+		}
+	}
+	SourceString[Count] = '\0';
+	return SourceString.c_str();
+}
 
 
 BOOL EnumerateWindows(const char* WindowName) {
@@ -575,22 +321,6 @@ BOOL WindowScanA(const char* WindowName) {
 
 BOOL WindowScanW(const wchar_t* WindowName) {
 	return FindWindowW(nullptr, WindowName) ? TRUE : FALSE;
-}
-
-
-BOOL EnumerateDrivers() {
-	PVOID Drivers[1024];
-	DWORD RequiredSize = NULL;
-
-	if (K32EnumDeviceDrivers(Drivers, sizeof(Drivers), &RequiredSize)) {
-		auto DriverCount = RequiredSize / sizeof(PVOID);
-		for (int i = 0; i < DriverCount; i++) {
-			wchar_t Buffer[256];
-			K32GetDeviceDriverBaseNameW(Drivers[i], Buffer, 256);
-		}
-		return TRUE;
-	}
-	return FALSE;
 }
 
 
@@ -635,23 +365,27 @@ BOOL KeyWasPressed(int Key) {
 BOOL DoesFileExist(const char* FileName) {
 	HANDLE hFile;
 
-	hFile = CreateFileA(
-		FileName, GENERIC_ALL,
-		0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
-		NULL);
+	hFile = CreateFileA(FileName, 
+			    GENERIC_ALL,
+			    0, 
+			    NULL, 
+			    OPEN_EXISTING, 
+			    FILE_ATTRIBUTE_NORMAL,
+			    NULL);
 
 	if (GetLastError() == ERROR_FILE_NOT_FOUND) {
 		return FALSE;
-	}
-	else {
+	} else {
 		CloseHandle(hFile);
 		return TRUE;
 	}
 }
 
+
 HANDLE SpawnThread(PVOID StartRoutine, PVOID LP = nullptr, DWORD* ThreadId = nullptr) {
 	return CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(StartRoutine), LP, 0, ThreadId);
 }
+
 
 void AppendString(std::string& SourceString, int NumberOfStrings, ...) {
 	va_list List;
@@ -665,9 +399,15 @@ void AppendString(std::string& SourceString, int NumberOfStrings, ...) {
 
 
 BOOL StringToBool(std::string SourceString) {
-	if (SourceString == "false" || SourceString == "False" || SourceString == "FALSE") {
+	for (int i = 0; i < SourceString.length(); i++) {
+		SourceString[i] = std::tolower(SourceString[i]);
+	}
+	
+	if (SourceString == "false") {
 		return FALSE;
-	} return TRUE;
+	} 
+	
+	return TRUE;
 }
 
 
@@ -713,47 +453,6 @@ int RandomInteger(int Min = 0, int Max = 200) {
 	std::uniform_int_distribution<> Dist(Min, Max);
 
 	return Dist(RNG);
-}
-
-
-float RandomFloat(float Min = 0.0f, float Max = 100.0f) {
-Start:
-
-	std::random_device RandomDevice;
-	std::mt19937 RNG(RandomDevice());
-	std::uniform_int_distribution<> Dist(Min, Max);
-
-	float MainFloat = Dist(RNG);
-	int Factorial = Dist(RNG);
-
-	std::string MainString = std::to_string(MainFloat);
-
-	if (MainFloat < 100.0f) {
-		MainString.replace(3, 5, std::to_string(Factorial));
-	}
-	else if (MainFloat < 1000.0f) {
-		MainString.replace(4, 6, std::to_string(Factorial));
-	}
-	else if (MainFloat < 1000.0f) {
-		MainString.replace(5, 7, std::to_string(Factorial));
-	}
-	else if (MainFloat < 100000.0f) {
-		MainString.replace(6, 8, std::to_string(Factorial));
-	}
-	else if (MainFloat < 10000000.0f) {
-		MainString.replace(8, 10, std::to_string(Factorial));
-	}
-	else {
-		return 0.0f;
-	}
-
-	float RandomFloat = std::stof(MainString);
-
-	if (RandomFloat > Max) {
-		RandomFloat = Max;
-	} if (RandomFloat < 0.0f) {
-		goto Start;
-	} return RandomFloat;
 }
 
 
@@ -880,7 +579,6 @@ VOID PrintPeriods(int Count, int ms) {
 
 
 VOID Print(std::string Text) {
-	std::flush(std::cout);
 	std::cout << Text;
 }
 
@@ -896,55 +594,46 @@ VOID Print(int NumberOfStrings, ...) {
 
 
 VOID PrintS(std::string Text) {
-	std::flush(std::cout);
 	std::cout << Text << "\n";
 }
 
 
 VOID Print(std::string Text, std::string Text2) {
-	std::flush(std::cout);
 	std::cout << Text << Text2;
 }
 
 
 VOID PrintS(std::string Text, std::string Text2) {
-	std::flush(std::cout);
 	std::cout << Text << Text2 << "\n";
 }
 
 
 VOID PrintHex(PVOID Hex) {
-	std::flush(std::cout);
 	std::cout << "0x" << std::uppercase << std::hex << Hex;
 }
 
 
 VOID PrintHexS(PVOID Hex) {
-	std::flush(std::cout);
 	std::cout << "0x" << std::uppercase << std::hex << Hex << "\n";
 }
 
 
 VOID PrintHex(DWORD64 Hex) {
-	std::flush(std::cout);
 	std::cout << "0x" << std::uppercase << std::hex << Hex;
 }
 
 
 VOID PrintHexS(DWORD64 Hex) {
-	std::flush(std::cout);
 	std::cout << "0x" << std::uppercase << std::hex << Hex << "\n";
 }
 
 
 VOID PrintFloat(float Value, int Precision) {
-	std::flush(std::cout);
 	std::cout << std::fixed << std::setprecision(Precision) << Value;
 }
 
 
 VOID PrintFloatS(float Value, int Precision) {
-	std::flush(std::cout);
 	std::cout << std::fixed << std::setprecision(Precision) << Value << "\n";
 }
 
@@ -963,37 +652,43 @@ DWORD DecToHex(int Value) {
 
 
 COLORREF StringToColor(std::string SourceString) {
-	if (SourceString == "white" || SourceString == "White" || SourceString == "WHITE")
-		return RGB(255, 255, 255);
-	if (SourceString == "black" || SourceString == "Black" || SourceString == "BLACK")
-		return RGB(0, 0, 0);
-	if (SourceString == "red" || SourceString == "Red" || SourceString == "RED")
-		return RGB(255, 0, 0);
-	if (SourceString == "blue" || SourceString == "Blue" || SourceString == "BLUE")
-		return RGB(0, 0, 255);
-	if (SourceString == "green" || SourceString == "Green" || SourceString == "GREEN")
-		return RGB(0, 128, 0);
-	if (SourceString == "purple" || SourceString == "Purple" || SourceString == "PURPLE")
-		return RGB(100, 0, 135);
-	if (SourceString == "navy" || SourceString == "Navy" || SourceString == "NAVY")
-		return RGB(0, 0, 128);
-	if (SourceString == "maroon" || SourceString == "Maroon" || SourceString == "MAROON")
-		return RGB(128, 0, 0);
-
-	return RGB(255, 255, 255);
-}
-
-
-std::string RemoveWhitespaces(std::string SourceString) {
-	auto Count = 0;
-
-	for (auto i = 0; SourceString[i]; i++) {
-		if (SourceString[i] != ' ') {
-			SourceString[Count++] = SourceString[i];
-		}
+	for (int i = 0; i < SourceString.length(); i++) {
+		SourceString[i] = std::tolower(SourceString[i]);
 	}
-	SourceString[Count] = '\0';
-	return SourceString.c_str();
+
+	if (SourceString == "white") {
+		return RGB(255, 255, 255);
+	} 
+	
+	if (SourceString == "black") {
+		return RGB(0, 0, 0);
+	} 
+	
+	if (SourceString == "red") {
+		return RGB(255, 0, 0);
+	} 
+	
+	if (SourceString == "blue") {
+		return RGB(0, 0, 255);
+	} 
+	
+	if (SourceString == "green") {
+		return RGB(0, 128, 0);
+	} 
+	
+	if (SourceString == "purple") {
+		return RGB(100, 0, 135);
+	} 
+	
+	if (SourceString == "navy") {
+		return RGB(0, 0, 128);
+	} 
+	
+	if (SourceString == "maroon") {
+		return RGB(128, 0, 0);
+	}
+	
+	return RGB(255, 255, 255);
 }
 
 
@@ -1202,23 +897,6 @@ public:
 	}
 
 
-	std::vector<DWORD> GetThreadList(DWORD ProcessId) {
-		std::vector<DWORD> Threads = { 0 };
-		HANDLE Snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, ProcessId);
-		THREADENTRY32 Thread{ sizeof(THREADENTRY32) };
-
-		if (Thread32First(Snapshot, &Thread)) {
-			do {
-				if (Thread.dwSize >= FIELD_OFFSET(THREADENTRY32, th32OwnerProcessID) + sizeof(Thread.th32OwnerProcessID)) {
-					if (Thread.th32OwnerProcessID == ProcessId) {
-						Threads.push_back(Thread.th32ThreadID);
-					}
-				} Thread.dwSize = sizeof(Thread);
-			} while (Thread32Next(Snapshot, &Thread));
-		} return Threads;
-	}
-
-
 	DWORD GetMainThreadId() {
 		HANDLE Snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, this->ProcessID);
 		THREADENTRY32 Thread{ sizeof(THREADENTRY32) };
@@ -1279,147 +957,263 @@ public:
 };
 
 
-class SliderObject;
-typedef void(*SliderCallback)(PVOID);
-std::unique_ptr<SliderObject> gSliderObject{ nullptr };
-WNDPROC gSliderObjectProcedure{ nullptr };
-LRESULT CALLBACK SliderObjectProcedure(HWND hWindow, UINT Message, WPARAM WP, LPARAM LP);
+
+//
+// ntdll.dll
+//
 
 
-class SliderObject {
-public:
+typedef enum _POOL_TYPE {
 
-	SliderCallback OnValueChanged{ nullptr };
-	SliderCallback OnExit{ nullptr };
-	SliderCallback OnTick{ nullptr };
+	NonPagedPool,
+	NonPagedPoolExecute,
+	PagedPool,
+	NonPagedPoolMustSucceed,
+	DontUseThisType,
+	NonPagedPoolCacheAligned,
+	PagedPoolCacheAligned,
+	NonPagedPoolCacheAlignedMustS,
+	MaxPoolType,
+	NonPagedPoolBase,
+	NonPagedPoolBaseMustSucceed,
+	NonPagedPoolBaseCacheAligned,
+	NonPagedPoolBaseCacheAlignedMustS,
+	NonPagedPoolSession,
+	PagedPoolSession,
+	NonPagedPoolMustSucceedSession,
+	DontUseThisTypeSession,
+	NonPagedPoolCacheAlignedSession,
+	PagedPoolCacheAlignedSession,
+	NonPagedPoolCacheAlignedMustSSession,
+	NonPagedPoolNx,
+	NonPagedPoolNxCacheAligned,
+	NonPagedPoolSessionNx
 
-	HWND Parent{ nullptr };
-	HWND Display{ nullptr };
-	HWND Slider{ nullptr };
+} POOL_TYPE;
 
-	int Value{ 0 };
-	int MinimumValue{ 0 };
-	int MaximumValue{ 0 };
-	int DefaultValue{ 0 };
-	LPCSTR WindowName{ nullptr };
-	DWORD SliderStyle{ 0 };
-	COLORREF BkgColor{ 0 };
+typedef struct _PROCESS_HANDLE_TABLE_ENTRY_INFO {
 
+	HANDLE HandleValue;
+	ULONG_PTR HandleCount;
+	ULONG_PTR PointerCount;
+	ULONG GrantedAccess;
+	ULONG ObjectTypeIndex;
+	ULONG HandleAttributes;
+	ULONG Reserved;
 
-	template <typename T = SliderCallback>
-	SliderObject Init(
-		T OnValueChanged,
-		T OnExit,
-		T OnTick,
-		std::string_view BkgColor = "Navy",
-		int MinimumValue = 1,
-		int MaximumValue = 100,
-		int DefaultValue = 100,
-		LPCSTR WindowName = "", 
-		DWORD SliderStyle = WS_CHILD | TBS_HORZ | WS_VISIBLE | TBS_TOOLTIPS,
-		DWORD ParentStyle = WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU, 
-		int X = -1,
-		int Y = -1,
-		int Width = 300,
-		int Height = 40
-	) 
-	{
-		this->OnValueChanged = reinterpret_cast<SliderCallback>(OnValueChanged);
-		this->OnExit = reinterpret_cast<SliderCallback>(OnExit);
-		this->OnTick = reinterpret_cast<SliderCallback>(OnTick);
-		this->BkgColor = StringToColor(BkgColor.data());
-		this->Value = DefaultValue;
-		this->MinimumValue = MinimumValue;
-		this->MaximumValue = MaximumValue;
-		this->DefaultValue = DefaultValue;
-		this->WindowName = WindowName;
-		this->SliderStyle = SliderStyle;
-		
-		this->Parent = CreateWindowExA(0, (LPCSTR)WC_DIALOG, WindowName, ParentStyle, 0, 0, 0, 0, nullptr, nullptr, nullptr, nullptr);
-		this->Slider = CreateWindowExW(0, TRACKBAR_CLASSW, nullptr, SliderStyle, X, Y, Width, Height, this->Parent, nullptr, nullptr, nullptr);
+} PROCESS_HANDLE_TABLE_ENTRY_INFO, * PPROCESS_HANDLE_TABLE_ENTRY_INFO;
 
-		gSliderObject = std::make_unique<SliderObject>(*this);
-		gSliderObjectProcedure = (WNDPROC)SetWindowLongPtrW(gSliderObject->Parent, GWLP_WNDPROC, (LONG_PTR)SliderObjectProcedure);
-	
-		SendMessageW(gSliderObject->Slider, TBM_SETRANGEMIN, gSliderObject->MinimumValue, gSliderObject->MinimumValue);
-		SendMessageW(gSliderObject->Slider, TBM_SETRANGEMAX, gSliderObject->MinimumValue, gSliderObject->MaximumValue);
-		SendMessageW(gSliderObject->Slider, TBM_SETPOS, 0, gSliderObject->DefaultValue);
+typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO {
 
-		SetWindowPos(gSliderObject->Parent, HWND_TOP, 0, 0, 312, 60, SWP_SHOWWINDOW);
-		ShowWindow(gSliderObject->Parent, SW_SHOW);
+	USHORT UniqueProcessId;
+	USHORT CreatorBackTraceIndex;
+	UCHAR ObjectTypeIndex;
+	UCHAR HandleAttributes;
+	USHORT HandleValue;
+	PVOID Object;
+	ULONG GrantedAccess;
 
-		MSG Message = { 0 };
+}SYSTEM_HANDLE_TABLE_ENTRY_INFO, *PSYSTEM_HANDLE_TABLE_ENTRY_INFO;
 
-		do {
-			DispatchMessageW(&Message);
-			this->OnTick(this);
-		} while (GetMessageW(&Message, nullptr, 0, 0));
-	}
+typedef struct _SYSTEM_HANDLE_INFORMATION {
 
-	void SetWindowName(std::string_view Name) {
-		SetWindowTextA(this->Parent, Name.data());
-		this->WindowName = Name.data();
-	}
+	DWORD NumberOfHandles;
+	SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[ANYSIZE_ARRAY];
 
-	template <typename T>
-	T GetValue() {
-		return reinterpret_cast<T>(this->Value);
-	}
-};
+} SYSTEM_HANDLE_INFORMATION, * PSYSTEM_HANDLE_INFORMATION;
 
+typedef struct _THREAD_BASIC_INFORMATION {
 
-LRESULT CALLBACK SliderObjectProcedure(HWND hWindow, UINT Message, WPARAM WP, LPARAM LP) {
-	switch (Message) {
-		case WM_HSCROLL: {
-			if (reinterpret_cast<HWND>(LP) == gSliderObject->Slider) {
-				SendMessageW(
-					gSliderObject->Display, 
-					WM_SETTEXT, 
-					NULL, 
-					(LPARAM)std::to_wstring(
-						gSliderObject->Value = SendMessage(
-							gSliderObject->Slider, 
-							TBM_GETPOS, 
-							0, 
-							0
-						)).c_str());
+	NTSTATUS                ExitStatus;
+	PVOID                   TebBaseAddress;
+	CLIENT_ID               ClientId;
+	KAFFINITY               AffinityMask;
+	LONG					Priority;
+	LONG	                BasePriority;
 
-				gSliderObject->OnValueChanged(gSliderObject.get());
-			}
-		} break;
+} THREAD_BASIC_INFORMATION, * PTHREAD_BASIC_INFORMATION;
 
-		case WM_CLOSE: {
-			gSliderObject->OnExit(gSliderObject.get());
-			PostQuitMessage(0);
-		} break;
+typedef struct _OBJECT_BASIC_INFORMATION {
 
-		case WM_CTLCOLORSTATIC: {
-			if (RGB(255, 255, 255) == gSliderObject->BkgColor) {
-				SetTextColor((HDC)WP, RGB(0, 0, 0));
-			} else {
-				SetTextColor((HDC)WP, RGB(255, 255, 255));
-			}
-			SetBkColor((HDC)WP, gSliderObject->BkgColor);
-			return (BOOL)CreateSolidBrush(gSliderObject->BkgColor);
-		} break;
+	ULONG                   Attributes;
+	ACCESS_MASK             GrantedAccess;
+	ULONG                   HandleCount;
+	ULONG                   ReferenceCount;
+	ULONG                   PagedPoolUsage;
+	ULONG                   NonPagedPoolUsage;
+	ULONG                   Reserved[3];
+	ULONG                   NameInformationLength;
+	ULONG                   TypeInformationLength;
+	ULONG                   SecurityDescriptorLength;
+	LARGE_INTEGER           CreationTime;
 
-		case WM_CTLCOLORDLG: {
-			if (RGB(255, 255, 255) == gSliderObject->BkgColor) {
-				SetTextColor((HDC)WP, RGB(0, 0, 0));
-			} else {
-				SetTextColor((HDC)WP, RGB(255, 255, 255));
-			}
-			SetBkColor((HDC)WP, gSliderObject->BkgColor);
-			return (BOOL)CreateSolidBrush(gSliderObject->BkgColor);
-		} break;
-	}
-	
-	return CallWindowProcW(gSliderObjectProcedure, hWindow, Message, WP, LP);
-}
+} OBJECT_BASIC_INFORMATION, * POBJECT_BASIC_INFORMATION;
+
+typedef struct _OBJECT_NAME_INFORMATION {
+
+	UNICODE_STRING          Name;
+	WCHAR                   NameBuffer[0];
+
+} OBJECT_NAME_INFORMATION, * POBJECT_NAME_INFORMATION;
+
+typedef struct _OBJECT_DATA_INFORMATION {
+
+	BOOLEAN                 InheritHandle;
+	BOOLEAN                 ProtectFromClose;
+
+} OBJECT_DATA_INFORMATION, * POBJECT_DATA_INFORMATION;
+
+typedef struct _OBJECT_TYPE_INFORMATION {
+
+	UNICODE_STRING          TypeName;
+	ULONG                   TotalNumberOfHandles;
+	ULONG                   TotalNumberOfObjects;
+	WCHAR                   Unused1[8];
+	ULONG                   HighWaterNumberOfHandles;
+	ULONG                   HighWaterNumberOfObjects;
+	WCHAR                   Unused2[8];
+	ACCESS_MASK             InvalidAttributes;
+	GENERIC_MAPPING         GenericMapping;
+	ACCESS_MASK             ValidAttributes;
+	BOOLEAN                 SecurityRequired;
+	BOOLEAN                 MaintainHandleCount;
+	USHORT                  MaintainTypeList;
+	POOL_TYPE               PoolType;
+	ULONG                   DefaultPagedPoolCharge;
+	ULONG                   DefaultNonPagedPoolCharge;
+
+} OBJECT_TYPE_INFORMATION, * POBJECT_TYPE_INFORMATION;
 
 
+typedef NTSYSAPI NTSTATUS(NTAPI* tNtQueryVirtualMemory)(
+	HANDLE hProcess,
+	PVOID BaseAddress,
+	INT MemoryInformationClass,
+	PVOID MemoryInformation,
+	SIZE_T MemoryInformationLength,
+	PSIZE_T ReturnLength
+	);
 
 
+typedef NTSYSAPI NTSTATUS(NTAPI* tNtReadVirtualMemory)(
+	HANDLE hProcess,
+	PVOID BaseAddress,
+	PVOID Buffer,
+	ULONG NumberOfBytesToRead,
+	PULONG NumberOfBytesRead OPTIONAL
+	);
+
+
+typedef NTSYSAPI NTSTATUS(NTAPI* tNtWriteVirtualMemory)(
+	HANDLE hProcess,
+	PVOID BaseAddress,
+	PVOID Buffer,
+	ULONG NumberOfBytesToWrite,
+	PULONG NumberOfBytesWritten OPTIONAL
+	);
+
+
+typedef NTSTATUS(NTAPI* tNtQuerySystemInformation)(
+	DWORD SystemInformationClass,
+	PVOID SystemInformation,
+	ULONG SystemInformationLength,
+	PULONG ReturnLength
+	);
+
+
+typedef NTSTATUS (NTAPI* tNtQueryInformationProcess)(
+	IN HANDLE hProcess,
+	IN PROCESS_INFORMATION_CLASS ProcessInformationClass,
+	OUT PVOID ProcessInformation,
+	IN ULONG ProcessInformationLength,
+	OUT PULONG ReturnLength
+	);
+
+
+typedef NTSTATUS(NTAPI* tNtQueryInformationThread) (
+	IN HANDLE	ThreadHandle,
+	IN INT		ThreadInformationClass,
+	OUT PVOID	ThreadInformation,
+	IN ULONG	ThreadInformationLength,
+	OUT PULONG	ReturnLength OPTIONAL
+	);
+
+
+typedef NTSTATUS(NTAPI* tNtQueryTimerResolution) (
+	OUT PULONG MinimumResolution,
+	OUT PULONG MaximumResolution,
+	OUT PULONG CurrentResolution
+	);
+
+typedef NTSTATUS(NTAPI* tNtSuspendResumeProcess)(
+	IN HANDLE hProcess
+	);
+
+
+typedef NTSTATUS(NTAPI* tNtGetSetContextThread)(
+	HANDLE ThreadHandle,
+	PCONTEXT ThreadContext
+	);
+
+
+typedef NTSTATUS(NTAPI* tRtlCompareUnicodeString)(
+	_In_ PUNICODE_STRING String1,
+	_In_ PUNICODE_STRING String2,
+	_In_ BOOLEAN         CaseInSensitive
+	);
+
+
+typedef NTSTATUS(NTAPI* tRtlGetVersion)(
+	_Out_ PRTL_OSVERSIONINFOW lpVersionInformation
+	);
+
+
+typedef NTSTATUS(NTAPI* tNtLoadDriver)(
+	PUNICODE_STRING DriverServiceName
+	);
+
+
+typedef NTSTATUS(NTAPI* tNtQueryObject)(
+	HANDLE Object,
+	OBJECT_INFORMATION_CLASS ObjectInformationClass,
+	PVOID ObjectInformation,
+	ULONG ObjectInformationLength,
+	PULONG ReturnLength
+	);
+
+
+tNtQueryVirtualMemory pNtQueryVirtualMemory = nullptr;
+tNtQuerySystemInformation pNtQuerySystemInformation = nullptr;
+tNtReadVirtualMemory pNtReadVirtualMemory = nullptr;
+tNtWriteVirtualMemory pNtWriteVirtualMemory = nullptr;
+tNtQueryInformationProcess pNtQueryInformationProcess = nullptr;
+tNtQueryInformationThread pNtQueryInformationThread = nullptr;
+tNtQueryTimerResolution pNtQueryTimerResolution = nullptr;
+tNtSuspendResumeProcess pNtSuspendProcess = nullptr;
+tNtSuspendResumeProcess pNtResumeProcess = nullptr;
+tNtGetSetContextThread pNtGetContextThread = nullptr;
+tNtGetSetContextThread pNtSetContextThread = nullptr;
+tNtQueryObject pNtQueryObject = nullptr;
+tRtlCompareUnicodeString pRtlCompareUnicodeString = nullptr;
+tRtlGetVersion pRtlGetVersion = nullptr;
+tNtLoadDriver pNtLoadDriver = nullptr;
+
+
+NTSTATUS NtQueryVirtualMemory(HANDLE hProcess, PVOID BaseAddress, INT MemoryInformationClass, PVOID MemoryInformation, SIZE_T MemoryInformationLength, PSIZE_T ReturnLength);
+NTSTATUS NtQuerySystemInformation(DWORD SystemInformationClass, PVOID SystemInformation, DWORD SystemInformationLength, PDWORD ReturnLength);
+NTSTATUS NtReadVirtualMemory(HANDLE hProcess, PVOID Address, PVOID Buffer, DWORD Size, PDWORD BytesRead);
+NTSTATUS NtWriteVirtualMemory(HANDLE hProcess, PVOID Address, PVOID Buffer, DWORD Size, PDWORD BytesWritten);
+NTSTATUS NtQueryInformationProcess(HANDLE hProcess, PROCESS_INFORMATION_CLASS ProcessInformationClass, PVOID ProcessInformation, ULONG ProcessInformationLength, PULONG ReturnLength);
+NTSTATUS NtQueryInformationThread(HANDLE ThreadHandle, INT ThreadInformationClass, PVOID ThreadInformation, ULONG ThreadInformationLength, PULONG ReturnLength OPTIONAL);
+NTSTATUS NtQueryTimerResolution(PULONG MinimumResolution, PULONG MaximumResolution, PULONG CurrentResolution);
+NTSTATUS NtSuspendProcess(HANDLE hProcess);
+NTSTATUS NtResumeProcess(HANDLE hProcess);
+NTSTATUS NtGetContextThread(HANDLE hThread, PCONTEXT ThreadContext);
+NTSTATUS NtSetContextThread(HANDLE hThread, PCONTEXT ThreadContext);
+NTSTATUS NtQueryObject(HANDLE Object, OBJECT_INFORMATION_CLASS ObjectInformationClass, PVOID ObjectInformation, ULONG ObjectInformationLength, PULONG ReturnLength);
+NTSTATUS RtlCompareUnicodeString(PUNICODE_STRING String1, PUNICODE_STRING String2, BOOLEAN CaseInSesitive);
+NTSTATUS RtlGetVersion(PRTL_OSVERSIONINFOW pVersionInfo);
+NTSTATUS NtLoadDriver(PUNICODE_STRING DriverServiceName);
 
 
 VOID InitImports() {
@@ -1437,7 +1231,7 @@ VOID InitImports() {
 	pNtQueryObject = GetFunctionPointer	<tNtQueryObject>("ntdll.dll", "NtQueryObject");
 	pRtlCompareUnicodeString = GetFunctionPointer<tRtlCompareUnicodeString>("ntdll.dll", "RtlCompareUnicodeString");
 	pRtlGetVersion = GetFunctionPointer<tRtlGetVersion>("ntdll.dll", "RtlGetVersion");
-	pZwLoadDriver = GetFunctionPointer<tZwLoadDriver>("ntdll.dll", "ZwLoadDriver");
+	pNtLoadDriver = GetFunctionPointer<tNtLoadDriver>("ntdll.dll", "NtLoadDriver");
 }
 
 
@@ -1539,15 +1333,8 @@ NTSTATUS RtlGetVersion(PRTL_OSVERSIONINFOW pVersionInfo) {
 }
 
 
-NTSTATUS ZwLoadDriver(PUNICODE_STRING DriverServiceName) {
-	if (pZwLoadDriver == nullptr) {
-		pZwLoadDriver = GetFunctionPointer<tZwLoadDriver>("ntdll.dll", "ZwLoadDriver");
-	} return pZwLoadDriver(DriverServiceName);
-}
-
-
-BOOL IsEqualUnicodeString(PUNICODE_STRING String1, PUNICODE_STRING String2, BOOL CaseInSesitive) {
-	if (!RtlCompareUnicodeString(String1, String2, CaseInSesitive)) {
-		return TRUE;
-	} return FALSE;
+NTSTATUS NtLoadDriver(PUNICODE_STRING DriverServiceName) {
+	if (pNtLoadDriver == nullptr) {
+		pNtLoadDriver = GetFunctionPointer<tNtLoadDriver>("ntdll.dll", "NtLoadDriver");
+	} return pNtLoadDriver(DriverServiceName);
 }
