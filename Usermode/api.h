@@ -50,6 +50,23 @@
 
 
 
+
+NTSTATUS NtQueryVirtualMemory(HANDLE hProcess, PVOID BaseAddress, INT MemoryInformationClass, PVOID MemoryInformation, SIZE_T MemoryInformationLength, PSIZE_T ReturnLength);
+NTSTATUS NtQuerySystemInformation(DWORD SystemInformationClass, PVOID SystemInformation, DWORD SystemInformationLength, PDWORD ReturnLength);
+NTSTATUS NtReadVirtualMemory(HANDLE hProcess, PVOID Address, PVOID Buffer, DWORD Size, PDWORD BytesRead);
+NTSTATUS NtWriteVirtualMemory(HANDLE hProcess, PVOID Address, PVOID Buffer, DWORD Size, PDWORD BytesWritten);
+NTSTATUS NtQueryInformationThread(HANDLE ThreadHandle, INT ThreadInformationClass, PVOID ThreadInformation, ULONG ThreadInformationLength, PULONG ReturnLength OPTIONAL);
+NTSTATUS NtQueryTimerResolution(PULONG MinimumResolution, PULONG MaximumResolution, PULONG CurrentResolution);
+NTSTATUS NtSuspendProcess(HANDLE hProcess);
+NTSTATUS NtResumeProcess(HANDLE hProcess);
+NTSTATUS NtGetContextThread(HANDLE hThread, PCONTEXT ThreadContext);
+NTSTATUS NtSetContextThread(HANDLE hThread, PCONTEXT ThreadContext);
+NTSTATUS RtlCompareUnicodeString(PUNICODE_STRING String1, PUNICODE_STRING String2, BOOLEAN CaseInSesitive);
+NTSTATUS NtLoadDriver(PUNICODE_STRING DriverServiceName);
+
+
+
+
 DWORD GetProcessID(const wchar_t* ProcessName) {
 	HANDLE Snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	PROCESSENTRY32W Process{ sizeof(PROCESSENTRY32W) };
@@ -1199,25 +1216,13 @@ tRtlGetVersion pRtlGetVersion = nullptr;
 tNtLoadDriver pNtLoadDriver = nullptr;
 
 
-NTSTATUS NtQueryVirtualMemory(HANDLE hProcess, PVOID BaseAddress, INT MemoryInformationClass, PVOID MemoryInformation, SIZE_T MemoryInformationLength, PSIZE_T ReturnLength);
-NTSTATUS NtQuerySystemInformation(DWORD SystemInformationClass, PVOID SystemInformation, DWORD SystemInformationLength, PDWORD ReturnLength);
-NTSTATUS NtReadVirtualMemory(HANDLE hProcess, PVOID Address, PVOID Buffer, DWORD Size, PDWORD BytesRead);
-NTSTATUS NtWriteVirtualMemory(HANDLE hProcess, PVOID Address, PVOID Buffer, DWORD Size, PDWORD BytesWritten);
 NTSTATUS NtQueryInformationProcess(HANDLE hProcess, PROCESS_INFORMATION_CLASS ProcessInformationClass, PVOID ProcessInformation, ULONG ProcessInformationLength, PULONG ReturnLength);
-NTSTATUS NtQueryInformationThread(HANDLE ThreadHandle, INT ThreadInformationClass, PVOID ThreadInformation, ULONG ThreadInformationLength, PULONG ReturnLength OPTIONAL);
-NTSTATUS NtQueryTimerResolution(PULONG MinimumResolution, PULONG MaximumResolution, PULONG CurrentResolution);
-NTSTATUS NtSuspendProcess(HANDLE hProcess);
-NTSTATUS NtResumeProcess(HANDLE hProcess);
-NTSTATUS NtGetContextThread(HANDLE hThread, PCONTEXT ThreadContext);
-NTSTATUS NtSetContextThread(HANDLE hThread, PCONTEXT ThreadContext);
 NTSTATUS NtQueryObject(HANDLE Object, OBJECT_INFORMATION_CLASS ObjectInformationClass, PVOID ObjectInformation, ULONG ObjectInformationLength, PULONG ReturnLength);
-NTSTATUS RtlCompareUnicodeString(PUNICODE_STRING String1, PUNICODE_STRING String2, BOOLEAN CaseInSesitive);
 NTSTATUS RtlGetVersion(PRTL_OSVERSIONINFOW pVersionInfo);
-NTSTATUS NtLoadDriver(PUNICODE_STRING DriverServiceName);
 
 
 VOID InitImports() {
-	pNtQueryVirtualMemory = GetFunctionPointer<tNtQueryVirtualMemory>("ntdll.dll", "NtQueryVirtualMemory");
+	pQueryVirtualMemory = GetFunctionPointer<tNtQueryVirtualMemory>("ntdll.dll", "NtQueryVirtualMemory");
 	pNtQuerySystemInformation = GetFunctionPointer<tNtQuerySystemInformation>("ntdll.dll", "NtQuerySystemInformation");
 	pNtReadVirtualMemory = GetFunctionPointer<tNtReadVirtualMemory>("ntdll.dll", "NtReadVirtualMemory");
 	pNtWriteVirtualMemory = GetFunctionPointer<tNtWriteVirtualMemory>("ntdll.dll", "NtWriteVirtualMemory");
